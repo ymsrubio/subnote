@@ -1,0 +1,148 @@
+/*
+ * Subnote Design System tokens, from tokens.json beside this file.
+ * Light ("Paper") is the default; dark ("Night") follows the system setting.
+ * Base slots keep shadcn-svelte's names; everything marked "Subnote's own" is added beside them.
+ * tokens.test.ts fails if a token in tokens.json is missing here or has a different value.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	/* shadcn-svelte slots */
+	--background: #f3eee3;
+	--foreground: #2e2a24;
+	--card: #fbf8f1;
+	--card-foreground: var(--foreground);
+	--popover: #fdfbf6;
+	--popover-foreground: var(--foreground);
+	--primary: #2e2a24;
+	--primary-foreground: #fbf8f1;
+	--secondary: #e8e1d3;
+	--secondary-foreground: var(--foreground);
+	--muted: #ece6da;
+	--muted-foreground: #6b6358;
+	--accent: #e8e1d3;
+	--accent-foreground: var(--foreground);
+	--destructive: #a63d2b;
+	--border: #dcd4c5;
+	--input: #8f8676;
+	--ring: #4a6e8c;
+	--radius: 8px;
+
+	/* Subnote's own: the room */
+	--destructive-foreground: #fbf8f1;
+	--scrim: rgba(46, 42, 36, 0.45);
+
+	/* Subnote's own: the paper */
+	--paper: #f6f1e4;
+	--paper-edge: #ede6d7;
+	--dot: rgba(80, 62, 40, 0.26);
+	--pencil: #655c4e;
+	--gutter: rgba(50, 32, 14, 0.3);
+	--cover: #3e4a44;
+	--endpaper: #e2d8c6;
+
+	/* Subnote's own: Section ink and tab paper, assigned in this order */
+	--section-sage: #4f6b45;
+	--section-sage-tint: #dde6d3;
+	--section-clay: #9a4a36;
+	--section-clay-tint: #f2ddd6;
+	--section-ochre: #7a5a12;
+	--section-ochre-tint: #f1e6c3;
+	--section-slate: #3f6380;
+	--section-slate-tint: #d8e3ec;
+	--section-plum: #7a4a6e;
+	--section-plum-tint: #ebdde6;
+	--section-teal: #2f6a64;
+	--section-teal-tint: #d3e7e3;
+
+	/* Type: Nunito for the interface, Gaegu for handwriting */
+	--font-ui: Nunito, ui-rounded, system-ui, sans-serif;
+	--font-hand: Gaegu, 'Patrick Hand', cursive;
+
+	--text-display: 28px;
+	--text-display--line-height: 34px;
+	--text-display--font-weight: 800;
+	--text-display--letter-spacing: -0.01em;
+	--text-title: 20px;
+	--text-title--line-height: 26px;
+	--text-title--font-weight: 700;
+	--text-body: 15px;
+	--text-body--line-height: 22px;
+	--text-body--font-weight: 400;
+	--text-label: 14px;
+	--text-label--line-height: 20px;
+	--text-label--font-weight: 600;
+	--text-caption: 12px;
+	--text-caption--line-height: 16px;
+	--text-caption--font-weight: 600;
+	--text-caption--letter-spacing: 0.02em;
+	--text-numeral: 11px;
+	--text-numeral--line-height: 14px;
+	--text-numeral--font-weight: 600;
+	--text-section-title: 34px;
+	--text-section-title--line-height: 36px;
+	--text-section-title--font-weight: 400;
+	--text-section-name: 22px;
+	--text-section-name--line-height: 24px;
+	--text-section-name--font-weight: 400;
+	--text-pencil-note: 18px;
+	--text-pencil-note--line-height: 20px;
+	--text-pencil-note--font-weight: 400;
+	--text-tab: 13px;
+	--text-tab--line-height: 14px;
+	--text-tab--font-weight: 400;
+
+	/* Spacing: 4px steps; page-margin is a share of the page width */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--page-margin: 9%;
+
+	/* Radius: paper has crisp corners */
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 8px;
+	--radius-page: 4px;
+	--radius-tab: 5px;
+	--radius-full: 9999px;
+
+	/* Depth */
+	--shadow-sheet: 0 1px 2px #2e2a2414, 0 10px 28px -6px #2e2a2438;
+	--shadow-book: 0 1px 1px #140e0659, 0 3px 6px #140e062e, 0 26px 44px -18px #281a0a8c;
+	--shadow-tab: 0 1px 0 #32200e38;
+	--focus-ring: 0 0 0 2px #f3eee3, 0 0 0 4px #4a6e8c;
+}
+
+/* Night: the room goes dark; the paper stays paper, slightly dimmed. */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #1d1a16;
+		--foreground: #ede6d8;
+		--card: #26221d;
+		--popover: #2b2620;
+		--primary: #ede6d8;
+		--primary-foreground: #1d1a16;
+		--secondary: #332d26;
+		--muted: #2e2923;
+		--muted-foreground: #b3a996;
+		--accent: #332d26;
+		--destructive: #e07a62;
+		--border: #3b352d;
+		--input: #847a6a;
+		--ring: #8fb3d1;
+
+		--destructive-foreground: #1d1a16;
+		--scrim: rgba(0, 0, 0, 0.6);
+
+		--paper: #e8e1d2;
+		--paper-edge: #d6cdbb;
+
+		--shadow-sheet: 0 1px 2px #00000066, 0 12px 32px -6px #000000b3;
+		--shadow-book: 0 1px 1px #000000a6, 0 3px 8px #00000066, 0 28px 48px -16px #000000cc;
+		--focus-ring: 0 0 0 2px #1d1a16, 0 0 0 4px #8fb3d1;
+	}
+}
