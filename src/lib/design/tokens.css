@@ -39,8 +39,18 @@
 	--dot: rgba(80, 62, 40, 0.26);
 	--pencil: #655c4e;
 	--gutter: rgba(50, 32, 14, 0.3);
-	--cover: #3e4a44;
 	--endpaper: #e2d8c6;
+
+	/* Subnote's own: the linen binder. The cover is the same in both themes. */
+	--cover: #3e4a44;
+	--cover-foreground: #f6f1e4;
+	--cover-muted-foreground: #d5dccf;
+	--board: #2a322e;
+	--elastic: #262d29;
+	--desk: #e9e0cf;
+	--desk-muted-foreground: #554d43;
+	--slip-foreground: #2e2a24;
+	--slip-muted-foreground: #574f44;
 
 	/* Subnote's own: Section ink and tab paper, assigned in this order */
 	--section-sage: #4f6b45;
@@ -64,6 +74,17 @@
 	--text-display--line-height: 34px;
 	--text-display--font-weight: 800;
 	--text-display--letter-spacing: -0.01em;
+	--text-cover-title: 34px;
+	--text-cover-title--line-height: 40px;
+	--text-cover-title--font-weight: 800;
+	--text-cover-title--letter-spacing: -0.015em;
+	--text-cover-title-wide: 40px;
+	--text-cover-title-wide--line-height: 46px;
+	--text-cover-title-wide--font-weight: 800;
+	--text-cover-title-wide--letter-spacing: -0.015em;
+	--text-cover-count: 28px;
+	--text-cover-count--line-height: 32px;
+	--text-cover-count--font-weight: 800;
 	--text-title: 20px;
 	--text-title--line-height: 26px;
 	--text-title--font-weight: 700;
@@ -113,7 +134,11 @@
 	/* Depth */
 	--shadow-sheet: 0 1px 2px #2e2a2414, 0 10px 28px -6px #2e2a2438;
 	--shadow-book: 0 1px 1px #140e0659, 0 3px 6px #140e062e, 0 26px 44px -18px #281a0a8c;
+	--shadow-book-on-cover: 0 1px 2px #00000066, 0 4px 10px #0000004d, 0 24px 36px -14px #000000a6;
 	--shadow-tab: 0 1px 0 #32200e38;
+	--shadow-slip: 0 1px 0 #00000047, 0 3px 6px -2px #0000004d;
+	--shadow-slip-raised: 0 1px 0 #0000004d, 0 8px 18px -6px #00000080;
+	--shadow-pane: inset -2px 0 0 #0000002e, 6px 0 16px -8px #140e0673;
 	--focus-ring: 0 0 0 2px #f3eee3, 0 0 0 4px #4a6e8c;
 }
 
@@ -140,6 +165,22 @@
 
 		--paper: #e8e1d2;
 		--paper-edge: #d6cdbb;
+		--desk: #1d1a16;
+		--desk-muted-foreground: #b3a996;
+
+		/* Section tints dim with the paper; inks dim to keep 4.5:1 on it. */
+		--section-sage: #465f3d;
+		--section-sage-tint: #d0d7c2;
+		--section-clay: #894230;
+		--section-clay-tint: #e4cec5;
+		--section-ochre: #745611;
+		--section-ochre-tint: #e3d7b4;
+		--section-slate: #3a5b76;
+		--section-slate-tint: #ccd4d9;
+		--section-plum: #76486b;
+		--section-plum-tint: #deced4;
+		--section-teal: #2b605b;
+		--section-teal-tint: #c7d8d1;
 
 		--shadow-sheet: 0 1px 2px #00000066, 0 12px 32px -6px #000000b3;
 		--shadow-book: 0 1px 1px #000000a6, 0 3px 8px #00000066, 0 28px 48px -16px #000000cc;
