@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '../lib/design/tokens.css';
+
+/* Dark follows the system setting, like the tokens. */
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/*
+ * Expose the tokens to Tailwind. Radius tokens need no mapping: tokens.css sets
+ * --radius-sm/md/lg directly, so rounded-sm/md/lg read Subnote's 4/6/8px.
+ */
+@theme inline {
+	--font-sans: var(--font-ui);
+
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	--color-scrim: var(--scrim);
+	--color-paper: var(--paper);
+	--color-paper-edge: var(--paper-edge);
+	--color-dot: var(--dot);
+	--color-pencil: var(--pencil);
+	--color-gutter: var(--gutter);
+	--color-cover: var(--cover);
+	--color-cover-foreground: var(--cover-foreground);
+	--color-cover-muted-foreground: var(--cover-muted-foreground);
+	--color-board: var(--board);
+	--color-elastic: var(--elastic);
+	--color-desk: var(--desk);
+	--color-desk-muted-foreground: var(--desk-muted-foreground);
+	--color-slip-foreground: var(--slip-foreground);
+	--color-slip-muted-foreground: var(--slip-muted-foreground);
+	--color-endpaper: var(--endpaper);
+	--color-section-sage: var(--section-sage);
+	--color-section-sage-tint: var(--section-sage-tint);
+	--color-section-clay: var(--section-clay);
+	--color-section-clay-tint: var(--section-clay-tint);
+	--color-section-ochre: var(--section-ochre);
+	--color-section-ochre-tint: var(--section-ochre-tint);
+	--color-section-slate: var(--section-slate);
+	--color-section-slate-tint: var(--section-slate-tint);
+	--color-section-plum: var(--section-plum);
+	--color-section-plum-tint: var(--section-plum-tint);
+	--color-section-teal: var(--section-teal);
+	--color-section-teal-tint: var(--section-teal-tint);
+}
+
+/* The type ramp. Interface styles set Nunito; handwriting styles set Gaegu. */
+
+@utility type-display {
+	font: var(--text-display--font-weight) var(--text-display) / var(--text-display--line-height)
+		var(--font-ui);
+	letter-spacing: var(--text-display--letter-spacing);
+}
+
+@utility type-cover-title {
+	font: var(--text-cover-title--font-weight) var(--text-cover-title) /
+		var(--text-cover-title--line-height) var(--font-ui);
+	letter-spacing: var(--text-cover-title--letter-spacing);
+}
+
+@utility type-cover-title-wide {
+	font: var(--text-cover-title-wide--font-weight) var(--text-cover-title-wide) /
+		var(--text-cover-title-wide--line-height) var(--font-ui);
+	letter-spacing: var(--text-cover-title-wide--letter-spacing);
+}
+
+@utility type-cover-count {
+	font: var(--text-cover-count--font-weight) var(--text-cover-count) /
+		var(--text-cover-count--line-height) var(--font-ui);
+	font-variant-numeric: tabular-nums;
+}
+
+@utility type-title {
+	font: var(--text-title--font-weight) var(--text-title) / var(--text-title--line-height)
+		var(--font-ui);
+}
+
+@utility type-body {
+	font: var(--text-body--font-weight) var(--text-body) / var(--text-body--line-height)
+		var(--font-ui);
+}
+
+@utility type-label {
+	font: var(--text-label--font-weight) var(--text-label) / var(--text-label--line-height)
+		var(--font-ui);
+}
+
+@utility type-caption {
+	font: var(--text-caption--font-weight) var(--text-caption) / var(--text-caption--line-height)
+		var(--font-ui);
+	letter-spacing: var(--text-caption--letter-spacing);
+}
+
+@utility type-numeral {
+	font: var(--text-numeral--font-weight) var(--text-numeral) / var(--text-numeral--line-height)
+		var(--font-ui);
+	font-variant-numeric: tabular-nums;
+}
+
+@utility type-section-title {
+	font: var(--text-section-title--font-weight) var(--text-section-title) /
+		var(--text-section-title--line-height) var(--font-hand);
+}
+
+@utility type-section-name {
+	font: var(--text-section-name--font-weight) var(--text-section-name) /
+		var(--text-section-name--line-height) var(--font-hand);
+}
+
+@utility type-pencil-note {
+	font: var(--text-pencil-note--font-weight) var(--text-pencil-note) /
+		var(--text-pencil-note--line-height) var(--font-hand);
+}
+
+@utility type-tab {
+	font: var(--text-tab--font-weight) var(--text-tab) / var(--text-tab--line-height) var(--font-hand);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground type-body;
+	}
+}
