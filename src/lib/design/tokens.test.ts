@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import postcss, { type AtRule, type Rule } from 'postcss';
 import { describe, expect, it } from 'vitest';
+import { sectionColours } from './sections';
 import tokens from './tokens.json';
 
 type Theme = 'light' | 'dark';
@@ -100,3 +101,40 @@ describe('tokens.css', () => {
 		expect(names.filter((name) => /^--(chart|sidebar)/.test(name))).toEqual([]);
 	});
 });
+
+describe.each<Theme>(['light', 'dark'])('contrast in the %s theme', (theme) => {
+	const colour = (name: string) => declared[theme].get(`--${name}`)!;
+
+	/** WCAG 2 contrast ratio of two opaque #rrggbb colours. */
+	function contrast(a: string, b: string) {
+		const luminance = (hex: string) => {
+			const [r, g, b] = hex
+				.slice(1)
+				.match(/../g)!
+				.map((pair) => {
+					const c = parseInt(pair, 16) / 255;
+					return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+				});
+			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		};
+		const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+		return (light + 0.05) / (dark + 0.05);
+	}
+
+	it.each(['cover-foreground', 'cover-muted-foreground'])('%s reaches 4.5:1 on cover', (text) => {
+		expect(contrast(colour(text), colour('cover'))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it.each(sectionColours)('a %s Section name reaches 4.5:1 on its slip', (section) => {
+		expect(
+			contrast(colour(`section-${section}`), colour(`section-${section}-tint`))
+		).toBeGreaterThanOrEqual(4.5);
+	});
+});
+
+it.each(['cover', 'cover-foreground', 'cover-muted-foreground', 'elastic', 'board'])(
+	'keeps %s the same at night',
+	(name) => {
+		expect(dark.get(`--${name}`)).toBe(light.get(`--${name}`));
+	}
+);
