@@ -26,7 +26,10 @@
 <div class="grid gap-6">
 	{#each sectionColours as colour, index (colour)}
 		{@const section = { colour, name: names[colour] }}
-		<div class="flex flex-wrap items-start gap-x-1 gap-y-4">
+		<div
+			id={index === 0 ? 'page-ref' : undefined}
+			class="flex flex-wrap items-start gap-x-1 gap-y-4"
+		>
 			<Page number={index * 8 + 2} side="left" width={158} {section} title range="pp. 2–9" />
 			<Page number={index * 8 + 3} side="right" width={158} {section} />
 			<Page number={index * 8 + 8} side="left" width={158} {section} />

@@ -8,31 +8,39 @@
 <script lang="ts">
 	import type { SectionColour } from '$lib/design/sections';
 
-	interface Props {
+	type Props = {
 		number: number;
-		/** The Section this Page belongs to; leave out for a Free Page. */
-		section?: PageSection;
-		/** Makes this the Section's Title Page: its name, an underline and `range`. */
-		title?: boolean;
-		/** The Section's page range, written on its Title Page: "pp. 3–10". */
-		range?: string;
 		/** Which side of the spread the Page is on: its outer edge is the other side. */
 		side: 'left' | 'right';
 		/** The Page's width in px. Everything inside is sized from it, never from a container. */
 		width: number;
-	}
+	} & (
+		| /** A Free Page: no Section. */ { section?: undefined; title?: false; range?: never }
+		| /** A Page in a Section, with its edge band. */ {
+				section: PageSection;
+				title?: false;
+				range?: never;
+		  }
+		| {
+				/** The Section's Title Page: its name, an underline and `range`. */
+				section: PageSection;
+				title: true;
+				/** The Section's page range, written on its Title Page: "pp. 3–10". */
+				range?: string;
+		  }
+	);
 
 	let { number, section, title = false, range, side, width }: Props = $props();
 </script>
 
 <!--
-	--u is one 340th of the width, so a size drawn at the 340px page is `calc(N * var(--u))` at any width.
+	--k is the width over 340, the width the tokens are drawn at, so a size at the 340px page is `calc(Npx * var(--k))` at any width.
 -->
 <div
 	class="sn-page {side === 'left' ? 'sn-page--left' : 'sn-page--right'} {section
 		? `sn-sec--${section.colour}`
 		: ''}"
-	style:--u="{width / 340}px"
+	style:--k={width / 340}
 	style:width="{width}px"
 	style:height="{width * 1.4}px"
 >
@@ -49,6 +57,7 @@
 				preserveAspectRatio="none"
 			>
 				<path
+					vector-effect="non-scaling-stroke"
 					d="M2 6 C 30 2, 60 8, 100 5 S 170 3, 198 6"
 					fill="none"
 					stroke="currentColor"
@@ -73,11 +82,11 @@
 		background-color: var(--paper);
 		background-image: radial-gradient(
 			circle,
-			var(--dot) calc(0.9 * var(--u)),
-			transparent calc(1.1 * var(--u))
+			var(--dot) calc(0.8.16px * var(--k)),
+			transparent calc(1.1px * var(--k))
 		);
-		background-size: calc(17 * var(--u)) calc(17 * var(--u));
-		background-position: calc(8.5 * var(--u)) calc(8.5 * var(--u));
+		background-size: calc(17px * var(--k)) calc(17px * var(--k));
+		background-position: calc(8.5px * var(--k)) calc(8.5px * var(--k));
 		color: var(--pencil);
 	}
 	.sn-page--right {
@@ -91,7 +100,7 @@
 		content: '';
 		position: absolute;
 		inset: 0 auto 0 0;
-		width: calc(34 * var(--u));
+		width: calc(34px * var(--k));
 		background: linear-gradient(to right, var(--gutter), transparent);
 		pointer-events: none;
 	}
@@ -104,7 +113,7 @@
 		top: 0;
 		bottom: 0;
 		right: 0;
-		width: 2.4%;
+		width: calc(8.16px * var(--k));
 		background: var(--section-ink);
 	}
 	.sn-page--left .sn-page__band {
@@ -113,57 +122,59 @@
 	}
 	.sn-page__title {
 		position: absolute;
-		inset: calc(96 * var(--u)) calc(40 * var(--u)) auto;
+		inset: calc(96px * var(--k)) calc(40px * var(--k)) auto;
 		display: grid;
-		gap: calc(6 * var(--u));
+		gap: calc(6px * var(--k));
 		justify-items: start;
 	}
 	.sn-page__name {
 		margin: 0;
 		font-family: var(--font-hand);
 		font-weight: var(--text-section-title--font-weight);
-		font-size: calc(34 * var(--u));
-		line-height: calc(36 * var(--u));
+		font-size: calc(var(--text-section-title) * var(--k));
+		line-height: calc(var(--text-section-title--line-height) * var(--k));
 		color: var(--section-ink);
 		overflow-wrap: anywhere;
 	}
 	.sn-page__stroke {
-		width: calc(150 * var(--u));
-		height: calc(8 * var(--u));
+		width: calc(150px * var(--k));
+		height: calc(8px * var(--k));
 		color: var(--section-ink);
 	}
 	.sn-page__range {
 		margin: 0;
 		font-family: var(--font-hand);
-		font-size: calc(18 * var(--u));
-		line-height: calc(20 * var(--u));
+		font-weight: var(--text-pencil-note--font-weight);
+		font-size: calc(var(--text-pencil-note) * var(--k));
+		line-height: calc(var(--text-pencil-note--line-height) * var(--k));
 		color: var(--pencil);
 	}
 	.sn-page__free {
 		position: absolute;
-		top: calc(96 * var(--u));
+		top: calc(96px * var(--k));
 		left: 0;
 		right: 0;
 		text-align: center;
 		font-family: var(--font-hand);
-		font-size: calc(18 * var(--u));
-		line-height: calc(20 * var(--u));
+		font-weight: var(--text-pencil-note--font-weight);
+		font-size: calc(var(--text-pencil-note) * var(--k));
+		line-height: calc(var(--text-pencil-note--line-height) * var(--k));
 		color: var(--pencil);
 		opacity: 0.45;
 	}
 	.sn-page__number {
 		position: absolute;
-		bottom: calc(14 * var(--u));
-		right: calc(18 * var(--u));
+		bottom: calc(14px * var(--k));
+		right: calc(18px * var(--k));
 		font-family: var(--font-ui);
 		font-weight: var(--text-numeral--font-weight);
-		font-size: calc(11 * var(--u));
-		line-height: calc(14 * var(--u));
+		font-size: calc(var(--text-numeral) * var(--k));
+		line-height: calc(var(--text-numeral--line-height) * var(--k));
 		font-variant-numeric: tabular-nums;
 		color: var(--pencil);
 	}
 	.sn-page--left .sn-page__number {
 		right: auto;
-		left: calc(18 * var(--u));
+		left: calc(18px * var(--k));
 	}
 </style>

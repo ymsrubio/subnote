@@ -30,3 +30,7 @@ Preconditions:
 - The last example can't scroll to the top, because the page ends first. Its `top` stays large while the window is scrolled to the bottom. Check `scrollY + innerHeight` against `scrollHeight` before calling the anchor broken.
 - `--full` screenshots of the whole showcase run over 8000px tall at phone width. Screenshot the one example by anchor, without `--full`, unless the whole page is the point.
 - The colour example shows tokens as swatches. Contrast criteria are about real text on real surfaces, so measure the component, not its swatch.
+
+## Page
+
+`.claude/skills/verify/scripts/check-page.mjs <port>` asserts the Page rules in light and dark: 158px and 340px sizes in the exact width ratio, tabular numerals in the outer corners, the 2.4% band only on Section pages and mirrored on the left, Free Pages without a band, Title Page names in the Section ink, and a page in a 60px clipping container keeping its layout. Run it after changing `page.svelte`.
