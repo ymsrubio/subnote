@@ -28,10 +28,10 @@
 <div class="grid gap-4">
 	<p class="text-muted-foreground">
 		A two-page spread of Pages, 158px wide on a phone and 340px from 768px. Tap a page's outer edge
-		or press ← and → to turn one spread. A Section's tab belongs to its Title Page and travels with
-		it, and tapping a tab riffles to that Section. Below 560px, tabs drop their names and become
-		14px strips. With reduced motion, turns are instant. The component's only inputs are the pages
-		and the current spread.
+		or focus the book and press ← and → to turn one spread. A Section's tab belongs to its Title
+		Page and travels with it, and tapping a tab riffles to that Section. Below 560px, tabs drop
+		their names and become 14px strips. With reduced motion, turns are instant. The component's only
+		inputs are the pages and the current spread.
 	</p>
 	<div class="-mx-4 bg-board px-4 py-10 sm:mx-0 sm:rounded-lg sm:px-8">
 		<FlipBook {pages} bind:spread />

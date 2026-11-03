@@ -22,37 +22,41 @@ export function leafCount(pageCount: number): number {
 	return Math.ceil(Math.max(pageCount, 0) / 2);
 }
 
-/** A turn between two spreads. `progress` runs 0 to 1 on the spring. */
-export interface Turn {
-	from: number;
-	to: number;
-	progress: number;
+/**
+ * Where the spring has the book. `pos` is the spring's position in spreads, moving from `anchor`, the
+ * spread the book last rested on, towards its target. `speed` is the spring's velocity in spreads a second.
+ */
+export interface Flight {
+	pos: number;
+	anchor: number;
+	speed: number;
 }
 
-/** Where the later leaves of a riffle start, as a share of the whole turn. */
-const RIFFLE_SPREAD = 0.6;
+/** A single turn peaks at about 4 spreads a second; only faster flights, riffles, fan out. */
+const RIFFLE_SPEED = 6;
+const RIFFLE_RANGE = 20;
+/** How many leaves a full-speed riffle has in the air at once. */
+const RIFFLE_LEAVES = 4;
 
-/** How far leaf `j` is turned: 0 flat on the right, 1 flat on the left. */
-export function leafTurn(j: number, shown: number, turn: Turn | null): number {
-	if (!turn) return j < shown ? 1 : 0;
-	const forward = turn.to > turn.from;
-	const first = Math.min(turn.from, turn.to);
-	const last = Math.max(turn.from, turn.to) - 1;
-	if (j < first) return 1;
-	if (j > last) return 0;
-	const count = last - first + 1;
-	const order = forward ? j - first : last - j;
-	const stagger = count > 1 ? RIFFLE_SPREAD / (count - 1) : 0;
-	const duration = count > 1 ? 1 - RIFFLE_SPREAD : 1;
-	const t = Math.min(Math.max((turn.progress - order * stagger) / duration, 0), 1);
-	return forward ? t : 1 - t;
+function clamp01(n: number): number {
+	return Math.min(Math.max(n, 0), 1);
+}
+
+/**
+ * How far leaf `j` is turned: 0 flat on the right, 1 flat on the left. Leaves trail the spring, one
+ * spread of travel each; a fast flight stretches that so several are in the air. At rest it is exact.
+ */
+export function leafTurn(j: number, { pos, anchor, speed }: Flight): number {
+	const reach = 1 + (RIFFLE_LEAVES - 1) * clamp01((Math.abs(speed) - RIFFLE_SPEED) / RIFFLE_RANGE);
+	if (pos >= anchor) return j < anchor ? 1 : clamp01((pos - j) / reach);
+	return j >= anchor ? 0 : 1 - clamp01((j + 1 - pos) / reach);
 }
 
 /**
  * The leaves worth drawing: any mid-turn, plus the top of each stack. Leaves under those are covered.
  */
-export function visibleLeaves(leaves: number, shown: number, turn: Turn | null): number[] {
-	const turns = Array.from({ length: leaves }, (_, j) => leafTurn(j, shown, turn));
+export function visibleLeaves(leaves: number, flight: Flight): number[] {
+	const turns = Array.from({ length: leaves }, (_, j) => leafTurn(j, flight));
 	const topLeft = turns.lastIndexOf(1);
 	const topRight = turns.indexOf(0);
 	return turns.flatMap((t, j) => ((t > 0 && t < 1) || j === topLeft || j === topRight ? [j] : []));

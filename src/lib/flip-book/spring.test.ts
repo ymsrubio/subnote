@@ -32,4 +32,22 @@ describe('the page-turn spring', () => {
 		expect(atRest({ x: 1, v: 1 }, 1)).toBe(false);
 		expect(atRest({ x: 0.5, v: 0 }, 1)).toBe(false);
 	});
+
+	it('keeps its position and velocity when the target changes mid-flight', () => {
+		let state = { x: 0, v: 0 };
+		for (let i = 0; i < 10; i++) state = stepSpring(state, 1, 1 / 60);
+		const next = stepSpring(state, 2, 1 / 1000);
+		expect(next.x).toBeCloseTo(state.x + state.v / 1000, 3);
+		expect(next.v).toBeGreaterThan(state.v);
+	});
+
+	it('peaks below the riffle speed on a single turn', () => {
+		let state = { x: 0, v: 0 };
+		let peak = 0;
+		for (let i = 0; i < 120; i++) {
+			state = stepSpring(state, 1, 1 / 60);
+			peak = Math.max(peak, Math.abs(state.v));
+		}
+		expect(peak).toBeLessThan(6);
+	});
 });

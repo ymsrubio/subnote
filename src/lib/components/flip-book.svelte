@@ -23,8 +23,7 @@
 		leafTurn,
 		spreadCount,
 		spreadOfPage,
-		visibleLeaves,
-		type Turn
+		visibleLeaves
 	} from '$lib/flip-book/turn';
 
 	interface Props {
@@ -49,86 +48,110 @@
 	const last = $derived(spreadCount(pages.length) - 1);
 	const leaves = $derived(leafCount(pages.length));
 
-	let shown = $state(untrack(() => clampSpread(spread, pages.length)));
-	let turn = $state<Turn | null>(null);
+	/** The spring's state. `anchor` is the spread the book last rested on. */
+	const start = untrack(() => clampSpread(spread, pages.length));
+	let pos = $state(start);
+	let anchor = $state(start);
+	let speed = $state(0);
+	let target = $state(start);
 	let frame = 0;
+	const flight = $derived({ pos, anchor, speed });
 
 	$effect(() => {
-		const target = clampSpread(spread, pages.length);
-		untrack(() => go(target));
-		return () => cancelAnimationFrame(frame);
+		const clamped = clampSpread(spread, pages.length);
+		if (clamped !== spread) spread = clamped;
+		untrack(() => go(clamped));
 	});
+	$effect(() => () => cancelAnimationFrame(frame));
 
-	/** Turn to `target`: every turn, one page or a riffle, runs on the same spring. */
-	function go(target: number) {
-		if (turn?.to === target) return;
-		if (turn) land();
-		if (target === shown) return;
+	/**
+	 * Turn to `to`. Every turn, one page or a riffle, runs on the same spring: a new target while it is
+	 * moving just retargets it, keeping its position and velocity.
+	 */
+	function go(to: number) {
+		target = to;
 		if (reducedMotion.current) {
-			shown = target;
-			return;
-		}
-		let spring: SpringState = { x: 0, v: 0 };
-		let before = performance.now();
-		turn = { from: shown, to: target, progress: 0 };
-		const tick = (now: number) => {
-			spring = stepSpring(spring, 1, Math.min((now - before) / 1000, 1 / 30));
-			before = now;
-			if (!turn) return;
-			if (atRest(spring, 1)) return land();
-			turn = { ...turn, progress: spring.x };
+			cancelAnimationFrame(frame);
+			frame = 0;
+			land();
+		} else if (!frame && (to !== pos || speed !== 0)) {
+			let spring: SpringState = { x: pos, v: speed };
+			let before = performance.now();
+			const tick = (now: number) => {
+				spring = stepSpring(spring, target, Math.min((now - before) / 1000, 1 / 30));
+				before = now;
+				if (atRest(spring, target)) {
+					frame = 0;
+					land();
+					return;
+				}
+				pos = spring.x;
+				speed = spring.v;
+				frame = requestAnimationFrame(tick);
+			};
 			frame = requestAnimationFrame(tick);
-		};
-		frame = requestAnimationFrame(tick);
+		}
 	}
 
 	function land() {
-		cancelAnimationFrame(frame);
-		if (turn) shown = turn.to;
-		turn = null;
+		pos = anchor = target;
+		speed = 0;
 	}
 
-	function turnBy(step: number) {
-		spread = clampSpread((turn?.to ?? shown) + step, pages.length);
+	/** Holding a key turns on with the spring, never queueing turns ahead of it. */
+	function turnBy(step: number, held = false) {
+		if (held && Math.abs(target - pos) >= 1.5) return;
+		spread = clampSpread(target + step, pages.length);
 	}
 
 	function onkeydown(event: KeyboardEvent) {
 		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-		const target = event.target;
-		if (
-			target instanceof HTMLElement &&
-			(target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
-		) {
-			return;
-		}
-		if (event.key === 'ArrowRight') turnBy(1);
-		else if (event.key === 'ArrowLeft') turnBy(-1);
+		if (event.key === 'ArrowRight') turnBy(1, event.repeat);
+		else if (event.key === 'ArrowLeft') turnBy(-1, event.repeat);
 		else return;
 		event.preventDefault();
 	}
 
-	/** Each Section's tab, in page order, so tabs fan down the edge. A tab belongs to its Title Page's leaf. */
+	/** Each Section's tab, in page order, on the leaf that carries its Title Page. */
 	const tabs = $derived(
 		pages.flatMap((page, index) =>
-			page.section && page.title
-				? [{ index, section: page.section, number: index + 1, order: 0 }]
-				: []
+			page.section && page.title ? [{ index, section: page.section, number: index + 1 }] : []
 		)
 	);
-	const tabOf = $derived(new Map(tabs.map((tab, order) => [tab.index, { ...tab, order }])));
-	const tabHeight = $derived(strips.current ? 40 : 64);
-	const tabStep = $derived(
-		tabs.length > 1 ? Math.min(tabHeight + 8, (height - 24 - tabHeight) / (tabs.length - 1)) : 0
-	);
+	/**
+	 * Tabs fan down the page's edge without overlapping. A name needs about 5.8px a letter; if they do not
+	 * all fit, each shrinks to share the edge. Strips have no names, so they just share it.
+	 */
+	const tabLayout = $derived.by(() => {
+		const room = height - 24;
+		const natural = tabs.map((tab) =>
+			strips.current ? 40 : Math.max(64, Math.ceil(tab.section.name.length * 5.8 + 16))
+		);
+		const total = natural.reduce((sum, h) => sum + h, 0);
+		const squeeze = Math.min(1, room / Math.max(total, 1));
+		const heights = natural.map((h) => Math.floor(h * squeeze));
+		const gap =
+			tabs.length > 1
+				? Math.min(8, (room - heights.reduce((a, h) => a + h, 0)) / (tabs.length - 1))
+				: 0;
+		let top = 12;
+		return tabs.map((tab, i) => {
+			const placed = { ...tab, top, height: heights[i] };
+			top += heights[i] + gap;
+			return placed;
+		});
+	});
+	const tabOf = (index: number) => tabLayout.find((tab) => tab.index === index);
 
-	const flat = $derived(visibleLeaves(leaves, shown, turn));
+	const flat = $derived(visibleLeaves(leaves, flight));
 	/** Leaves drawn: those in flight or on top of a stack, and the ones whose tab must stay reachable. */
 	const drawn = $derived(
 		Array.from({ length: leaves }, (_, j) => j).filter(
-			(j) => flat.includes(j) || tabOf.has(2 * j) || tabOf.has(2 * j + 1)
+			(j) => flat.includes(j) || tabOf(2 * j) || tabOf(2 * j + 1)
 		)
 	);
 
+	const shown = $derived(Math.round(pos));
 	const current = $derived(
 		new Set([pages[2 * shown - 1]?.section?.name, pages[2 * shown]?.section?.name])
 	);
@@ -140,8 +163,6 @@
 				: `Page ${2 * shown}`
 	);
 </script>
-
-<svelte:window {onkeydown} />
 
 {#snippet paper(index: number, side: 'left' | 'right')}
 	{@const page = pages[index]}
@@ -155,12 +176,12 @@
 {/snippet}
 
 {#snippet tab(leaf: number, side: 'left' | 'right')}
-	{@const entry = tabOf.get(2 * leaf) ?? tabOf.get(2 * leaf + 1)}
+	{@const entry = tabOf(2 * leaf) ?? tabOf(2 * leaf + 1)}
 	{#if entry}
 		<span
 			class="sn-flip__tab sn-flip__tab--{side}"
-			style:top="{12 + entry.order * tabStep}px"
-			style:--tab-height="{tabHeight}px"
+			style:top="{entry.top}px"
+			style:--tab-height="{entry.height}px"
 		>
 			<SectionTab
 				colour={entry.section.colour}
@@ -174,17 +195,21 @@
 {/snippet}
 
 {#if mounted}
+	<!-- The book takes the arrow keys only while it has focus, so it never steals them from other widgets. -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 	<div
 		class="sn-flip"
 		role="group"
 		aria-roledescription="book"
-		aria-label="Notebook"
+		aria-label="Notebook: use the left and right arrow keys to turn the pages"
+		tabindex="0"
+		{onkeydown}
 		style:width="{width * 2}px"
 		style:height="{height}px"
 		style:perspective="{width * 5}px"
 	>
 		{#each drawn as j (j)}
-			{@const t = leafTurn(j, shown, turn)}
+			{@const t = leafTurn(j, flight)}
 			{@const full = flat.includes(j)}
 			{@const shade = Math.sin(t * Math.PI) * 0.3}
 			<div
@@ -213,7 +238,7 @@
 			class="sn-flip__zone sn-flip__zone--left"
 			style:width="{zone}px"
 			aria-label="Previous pages"
-			disabled={(turn?.to ?? shown) <= 0}
+			disabled={target <= 0}
 			onclick={() => turnBy(-1)}
 		></button>
 		<button
@@ -221,7 +246,7 @@
 			class="sn-flip__zone sn-flip__zone--right"
 			style:width="{zone}px"
 			aria-label="Next pages"
-			disabled={(turn?.to ?? shown) >= last}
+			disabled={target >= last}
 			onclick={() => turnBy(1)}
 		></button>
 	</div>
@@ -269,6 +294,10 @@
 	}
 	.sn-flip__tab--left {
 		right: 100%;
+	}
+	.sn-flip:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 8px;
 	}
 	.sn-flip__zone {
 		position: absolute;
