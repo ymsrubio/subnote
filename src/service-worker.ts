@@ -37,18 +37,19 @@ sw.addEventListener('fetch', (event) => {
 
 	event.respondWith(
 		caches.open(CACHE).then(async (cache) => {
-			const cached = await cache.match(request, { ignoreSearch: request.mode === 'navigate' });
-			if (cached) return cached;
-			try {
-				return await fetch(request);
-			} catch (error) {
-				// Offline on a page that was not prerendered: fall back to the app shell.
-				if (request.mode === 'navigate') {
-					const shell = await cache.match('/');
-					if (shell) return shell;
+			// Pages go to the network first so the visit after a deploy shows the new build;
+			// the cache answers when offline. Hashed assets never change, so they stay cache-first.
+			if (request.mode === 'navigate') {
+				try {
+					return await fetch(request, { cache: 'no-cache' });
+				} catch (error) {
+					const cached =
+						(await cache.match(request, { ignoreSearch: true })) ?? (await cache.match('/'));
+					if (cached) return cached;
+					throw error;
 				}
-				throw error;
 			}
+			return (await cache.match(request)) ?? fetch(request);
 		})
 	);
 });
