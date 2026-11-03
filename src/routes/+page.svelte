@@ -1,15 +1,29 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
+	import FirstVisit from '$lib/components/first-visit.svelte';
+	import StorageBlocked from '$lib/components/storage-blocked.svelte';
+	import { notebookStore } from '$lib/storage';
+
+	let view = $state<'loading' | 'first-visit' | 'blocked'>('loading');
+
+	onMount(async () => {
+		try {
+			const [saved] = await notebookStore.list();
+			if (saved)
+				await goto(resolve('/notebooks/[id]/setup', { id: saved.id }), { replaceState: true });
+			else view = 'first-visit';
+		} catch {
+			view = 'blocked';
+		}
+	});
 </script>
 
 <svelte:head><title>Subnote</title></svelte:head>
 
-<main class="mx-auto grid max-w-2xl gap-4 px-4 py-8">
-	<h1 class="type-display">Subnote</h1>
-	<p>Plan how your paper notebook's pages are divided into Sections.</p>
-	<p>
-		<a class="underline underline-offset-4 type-label" href={resolve('/showcase')}
-			>Design system showcase</a
-		>
-	</p>
-</main>
+{#if view === 'first-visit'}
+	<FirstVisit />
+{:else if view === 'blocked'}
+	<StorageBlocked />
+{/if}

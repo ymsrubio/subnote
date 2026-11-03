@@ -1,26 +1,31 @@
-# Home page
+# First visit, New Notebook and Setup
 
-The home page at `/` names the app, says in one line what it is for, and links to the design-system showcase. It is a placeholder until the Notebook list screen exists.
+`/` decides from what is saved on this device (`localStorage` key `subnote:notebooks:v1`). With no Notebook it shows the first-visit room. With one it goes to `/notebooks/<id>/setup`. The design-system showcase is at `/showcase` and is not linked from here.
 
 ## Sub-features
 
-- `home-render` shows the `Subnote` heading and the one-line description.
-- `home-to-showcase` follows the `Design system showcase` link to `/showcase`.
+- `first-visit` shows the closed notebook, the headline `Give every page a purpose` and one `New Notebook` button.
+- `new-notebook-form` opens a bottom Sheet below 768px and a centred Dialog from 768px. Name and Pages are required, and a page count below 1 shows an error under the field.
+- `empty-setup` shows the Notebook's page grid with every Page free, and a disabled `Confirm Setup` with `Add a Section to confirm Setup.` beside it.
+- `saved-on-device` returns to the saved Notebook after a reload.
 
 ## How to get to it (user POV)
 
-- Open `http://localhost:<port>/`.
+- Open `http://localhost:<port>/` with nothing saved. To start over, run `localStorage.clear()` in the page and reload.
 
-## Driving it with shoot.mjs and the browser pane
+## Driving it with the browser pane
 
 Preconditions:
 
-- Doctor passes on `<port>`.
+- Doctor passes on `<port>`, and `localStorage` is empty for that origin (the pane keeps it between visits).
 
-- **Render.** Run `shoot.mjs --url http://localhost:<port>/ --eval '({ title: document.title, h1: document.querySelector("h1")?.textContent, link: document.querySelector("a")?.getAttribute("href") })'`. The result is `title` `Subnote`, `h1` `Subnote`, and `link` `./showcase` (relative, from `resolve`).
-- **Follow the link.** In the browser pane, `navigate` to `/`, `find` the link `Design system showcase`, and click it by ref. The URL becomes `/showcase` and the heading reads `Design system`.
-- **Proof.** Run `shoot.mjs --url http://localhost:<port>/ --width 375 --height 812 --scheme light --out .verify/<run>/home-375-light.png`.
+- **First visit.** `navigate` to `/`. The `h1` reads `Give every page a purpose` and `button "New Notebook"` exists.
+- **Form.** Click `New Notebook`, then `Start Setup` on the empty form. Errors `Give the Notebook a name` and `Enter how many pages it has` appear under the fields. Measure `[data-slot=input]` heights: 44 below 768px, 36 from 768px. The sheet is `[data-slot=sheet-content]`.
+- **Setup.** Fill `Notebook name` and `Pages`, press Enter. The URL becomes `/notebooks/<id>/setup`, the title reads `Setup · <name> · Subnote`, and the visible `Confirm Setup` button is disabled and its `aria-describedby` text is the reason. Phone and desktop render separate trees, so only one is visible at a time.
+- **Reload.** `navigate` to `/` again. It lands on the same Setup URL.
 
 ## Gotchas
 
-- The page uses `resolve('/showcase')`, which renders a relative `href` (`./showcase`). Assert the URL after clicking, not the `href` string.
+- The screenshot can lag a click by a frame. Take a second one before deciding an error did not render.
+- `/notebooks/<id>/...` is not prerendered. The static build serves `200.html` for it, so a host must use that as its fallback.
+- The theme follows the system setting only. Set it through emulation.

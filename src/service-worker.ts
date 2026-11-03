@@ -9,7 +9,8 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 
 // The version changes on every build, so a new deploy gets a new cache and the old one is deleted.
 const CACHE = `subnote-${version}`;
-const ASSETS = [...build, ...files, ...prerendered];
+// /200.html is the SPA fallback for routes that are not prerendered, such as /notebooks/<id>/setup.
+const ASSETS = [...build, ...files, ...prerendered, '/200.html'];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -44,7 +45,9 @@ sw.addEventListener('fetch', (event) => {
 					return await fetch(request, { cache: 'no-cache' });
 				} catch (error) {
 					const cached =
-						(await cache.match(request, { ignoreSearch: true })) ?? (await cache.match('/'));
+						(await cache.match(request, { ignoreSearch: true })) ??
+						(await cache.match('/200.html')) ??
+						(await cache.match('/'));
 					if (cached) return cached;
 					throw error;
 				}

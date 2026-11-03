@@ -23,6 +23,6 @@ This folder is the maintained source for verifying what a Subnote user sees. Rea
 
 ## Features
 
-- [Home page](./home.md) covers the landing page and its link to the showcase.
+- [First visit and Setup](./home.md) covers the first-visit room, the New Notebook Sheet and Dialog, the empty Setup, and the reload.
 - [Design-system showcase](./showcase.md) covers the example index, anchors, and each example section.
 - [Theme and width](./theme-and-width.md) covers light and dark and the phone, break point and desktop widths, across every route.
