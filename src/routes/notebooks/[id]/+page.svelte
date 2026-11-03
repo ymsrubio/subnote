@@ -42,6 +42,8 @@
 	let addButtonEl = $state<HTMLElement | null>(null);
 	let removedJustNow = false;
 	let spread = $state(0);
+	/** The width of the desk or board the book sits on, so the book can shrink to fit it. */
+	let deskWidth = $state(Infinity);
 
 	const desk = new MediaQuery('min-width: 768px');
 	const notebookId = () => page.params.id ?? '';
@@ -272,12 +274,12 @@
 		>
 	{/snippet}
 
-	{#snippet book()}
-		<FlipBook pages={bookPages(notebook)} bind:spread />
+	{#snippet book(roomAround: number)}
+		<FlipBook pages={bookPages(notebook)} bind:spread available={deskWidth - roomAround} />
 	{/snippet}
 
 	{#if desk.current}
-		<main class="grid min-h-dvh grid-cols-[400px_minmax(0,1fr)]">
+		<main class="grid min-h-dvh grid-cols-[clamp(300px,34vw,400px)_minmax(0,1fr)]">
 			<div class="sn-linen grid content-start gap-4 p-6">
 				{@render back()}
 				<header class="grid gap-1">
@@ -288,8 +290,11 @@
 				{@render lists()}
 				{@render addButton()}
 			</div>
-			<div class="grid place-items-center overflow-hidden bg-desk py-10">
-				<div class="w-fit shadow-(--shadow-book)">{@render book()}</div>
+			<div
+				class="grid place-items-center overflow-hidden bg-desk px-6 py-10"
+				bind:clientWidth={deskWidth}
+			>
+				<div class="w-fit shadow-(--shadow-book)">{@render book(48)}</div>
 			</div>
 		</main>
 	{:else}
@@ -305,8 +310,11 @@
 				tabs={notebook.sections.map((s) => s.colour)}
 			/>
 			<main class="grid gap-4 px-4 pb-10">
-				<div class="-mx-4 grid place-items-center overflow-hidden bg-board px-4 py-8">
-					<div class="w-fit shadow-(--shadow-book-on-cover)">{@render book()}</div>
+				<div
+					class="-mx-4 grid place-items-center overflow-hidden bg-board px-4 py-8"
+					bind:clientWidth={deskWidth}
+				>
+					<div class="w-fit shadow-(--shadow-book-on-cover)">{@render book(32)}</div>
 				</div>
 				{@render noticeCard()}
 				{@render lists()}

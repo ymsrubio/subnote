@@ -28,7 +28,7 @@
 		mark?: string;
 		/** A ghost icon button on the right. Give it `text-slip-foreground`: a slip stays paper at night, so the button's own text colour would vanish. */
 		action?: Snippet;
-		/** Makes the name a button that turns the book to this Section. */
+		/** Makes the whole row a button, named by the Section, that turns the book to it. The `action` stays its own button. */
 		onopen?: () => void;
 	};
 

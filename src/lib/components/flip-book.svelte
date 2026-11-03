@@ -41,9 +41,11 @@
 		pages: FlipBookPage[];
 		/** The spread showing: 0 is page 1 alone, then pages 2 and 3, and so on. Setting it turns to it. */
 		spread?: number;
+		/** The room the book and its tabs may take, in px. The book shrinks to fit; without it, it keeps its full size. */
+		available?: number;
 	}
 
-	let { pages, spread = $bindable(0) }: Props = $props();
+	let { pages, spread = $bindable(0), available = Infinity }: Props = $props();
 
 	/** The size depends on the screen, so the book is drawn once the page is on one, not from the server. */
 	let mounted = $state(false);
@@ -52,7 +54,11 @@
 	const wide = new MediaQuery('min-width: 768px', true);
 	const reducedMotion = new MediaQuery('prefers-reduced-motion: reduce', false);
 
-	const width = $derived(wide.current ? 340 : 158);
+	/** How far a tab sticks out past the book: the width of a tab. */
+	const tabReach = $derived(wide.current ? 24 : 14);
+	const width = $derived(
+		Math.max(96, Math.min(wide.current ? 340 : 158, Math.floor((available - 2 * tabReach) / 2)))
+	);
 	const height = $derived(width * 1.4);
 	const zone = $derived(Math.max(44, width * 0.2));
 	const last = $derived(spreadCount(pages.length) - 1);
