@@ -35,32 +35,20 @@ export function notebookSummary(saved: SavedNotebook): string {
 	].join(' · ');
 }
 
-/** A Pending Section and the Notebook it didn't fit in. */
-export interface WaitingSection {
-	section: PendingSection;
+/** The Pending Sections waiting for the next Notebook, and the Notebook they didn't fit in. */
+export interface WaitingSections {
 	from: string;
+	sections: PendingSection[];
 }
 
-const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-
 /**
- * The Pending Sections still waiting for a Notebook, oldest first. `notebooks` are oldest first, as the
- * store lists them. Only a confirmed Setup has Pending Sections for good. A Section whose name appears in
- * a later Notebook has been carried on there, so it no longer waits here.
+ * The Pending Sections waiting for the next Notebook: those of the newest confirmed Notebook, or `null`
+ * when no Notebook is confirmed. `notebooks` are oldest first, as `NotebookStore.list()` returns them, so
+ * the newest is the last. Older confirmed Notebooks' Pending Sections were handed to the next Setup, which
+ * carried or dropped them, so they never wait again. A newer Notebook whose Setup is not confirmed yet
+ * changes nothing.
  */
-export function waitingSections(notebooks: SavedNotebook[]): WaitingSection[] {
-	return notebooks.flatMap((saved, index) => {
-		if (!saved.setupConfirmed) return [];
-		const later = notebooks.slice(index + 1);
-		return saved.notebook.pending
-			.filter(
-				(section) =>
-					!later.some((other) =>
-						[...other.notebook.sections, ...other.notebook.pending].some((s) =>
-							sameName(s.name, section.name)
-						)
-					)
-			)
-			.map((section) => ({ section, from: saved.name }));
-	});
+export function waitingSections(notebooks: SavedNotebook[]): WaitingSections | null {
+	const newest = notebooks.findLast((saved) => saved.setupConfirmed);
+	return newest ? { from: newest.name, sections: newest.notebook.pending } : null;
 }

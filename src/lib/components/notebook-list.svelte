@@ -14,7 +14,7 @@
 
 	const newestFirst = $derived([...notebooks].reverse());
 	const waiting = $derived(waitingSections(notebooks));
-	const origins = $derived([...new Set(waiting.map((w) => w.from))].join(' and '));
+	const pending = $derived(waiting?.sections ?? []);
 	const current = $derived(newestFirst.find((saved) => saved.setupConfirmed));
 	const tabs = $derived(current?.notebook.sections.map((s) => s.colour) ?? []);
 
@@ -34,8 +34,8 @@
 		counts={[
 			{ value: notebooks.length, label: notebooks.length === 1 ? 'Notebook' : 'Notebooks' },
 			{
-				value: waiting.length,
-				label: waiting.length === 1 ? 'Pending Section' : 'Pending Sections'
+				value: pending.length,
+				label: pending.length === 1 ? 'Pending Section' : 'Pending Sections'
 			}
 		]}
 		{tabs}
@@ -47,20 +47,30 @@
 			>
 				<div class="grid gap-1">
 					<h2 id="waiting-heading" class="text-xl/[26px] font-bold md:text-[17px]/[22px]">
-						{waiting.length > 0 ? 'Waiting for your next Notebook' : 'Nothing is waiting'}
+						{#if waiting && pending.length > 0}
+							<span class="md:hidden">Waiting for your next Notebook</span>
+							<span class="hidden md:inline"
+								>{pending.length} Pending {pending.length === 1 ? 'Section' : 'Sections'}</span
+							>
+						{:else}
+							Nothing is waiting
+						{/if}
 					</h2>
 					<p class="text-muted-foreground">
-						{#if waiting.length > 0}
-							These didn't fit in {origins}. They'll be placed at the next Setup.
+						{#if waiting && pending.length > 0}
+							<span class="md:hidden">These didn't fit in {waiting.from}.</span>
+							<span class="hidden md:inline"
+								>They didn't fit in {waiting.from}. They'll be placed at your next Notebook's Setup.</span
+							>
 						{:else}
 							Every Section you've planned has a place. Start the next Notebook when this one is
 							full.
 						{/if}
 					</p>
 				</div>
-				{#if waiting.length > 0}
+				{#if pending.length > 0}
 					<ul class="flex flex-wrap gap-2" aria-label="Pending Sections">
-						{#each waiting as { section } (section.name)}
+						{#each pending as section (section.name)}
 							<li class="sn-slip sn-sec--{section.colour}">{section.name}</li>
 						{/each}
 					</ul>
@@ -103,6 +113,9 @@
 									{/each}
 								</span>
 								{#if saved.notebook.sections.length > 0}
+									<span class="sr-only md:hidden">
+										Sections: {saved.notebook.sections.map((s) => s.name).join(', ')}.
+									</span>
 									<span class="hidden flex-wrap gap-2 md:flex">
 										{#each saved.notebook.sections as section (section.name)}
 											<span class="sn-slip sn-sec--{section.colour}">{section.name}</span>

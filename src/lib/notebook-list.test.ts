@@ -47,6 +47,17 @@ describe('pageStrip', () => {
 		]);
 	});
 
+	it('orders runs by page even when Sections are given out of order', () => {
+		const shuffled = {
+			...spring,
+			notebook: {
+				...spring.notebook,
+				sections: [...spring.notebook.sections].reverse()
+			}
+		};
+		expect(runs(shuffled)).toEqual(runs(spring));
+	});
+
 	it('is all Free Pages for an empty Setup', () => {
 		expect(runs(saved('Empty', 96, []))).toEqual([[null, 96]]);
 	});
@@ -78,10 +89,23 @@ describe('notebookSummary', () => {
 });
 
 describe('waitingSections', () => {
+	const waits = (notebooks: SavedNotebook[]) => {
+		const waiting = waitingSections(notebooks);
+		return waiting && [waiting.from, waiting.sections.map((s) => s.name)];
+	};
+	const winter = saved('Winter', 8, [
+		{ name: 'A', pages: 8 },
+		{ name: 'B', pages: 4 },
+		{ name: 'C', pages: 4 }
+	]);
+
+	it('is null before any Notebook is confirmed', () => {
+		expect(waitingSections([])).toBeNull();
+		expect(waits([saved('Draft', 8, [{ name: 'A', pages: 8 }], false)])).toBeNull();
+	});
+
 	it('lists the Pending Sections of a confirmed Notebook with where they came from', () => {
-		expect(waitingSections([spring]).map((w) => [w.section.name, w.from])).toEqual([
-			['Reading log', 'Spring']
-		]);
+		expect(waits([spring])).toEqual(['Spring', ['Reading log']]);
 	});
 
 	it('ignores Pending Sections of an unconfirmed Setup', () => {
@@ -94,22 +118,49 @@ describe('waitingSections', () => {
 			],
 			false
 		);
-		expect(waitingSections([draft])).toEqual([]);
+		expect(waits([draft])).toBeNull();
 	});
 
-	it('drops a Section a later Notebook has carried on, placed or still pending', () => {
-		const first = saved('First', 8, [
-			{ name: 'A', pages: 8 },
-			{ name: 'B', pages: 4 },
-			{ name: 'C', pages: 4 }
-		]);
-		const second = saved('Second', 4, [
+	it('waits for nothing from an older Notebook when the newer one dropped its Pending Section', () => {
+		const summer = saved('Summer', 8, [{ name: 'D', pages: 8 }]);
+		expect(waits([winter, summer])).toEqual(['Summer', []]);
+	});
+
+	it('is not cleared by an unrelated Section with the same name in a later Notebook', () => {
+		const spring2 = saved('Spring', 8, [
 			{ name: 'b', pages: 4 },
-			{ name: 'D', pages: 4 }
+			{ name: 'x', pages: 4 }
 		]);
-		expect(waitingSections([first, second]).map((w) => [w.section.name, w.from])).toEqual([
-			['C', 'First'],
-			['D', 'Second']
+		expect(waits([winter, spring2])).toEqual(['Spring', []]);
+	});
+
+	it('keeps the newest confirmed Notebook waiting past a newer unconfirmed one', () => {
+		const draft = saved('Draft', 4, [{ name: 'Z', pages: 4 }], false);
+		expect(waits([winter, draft])).toEqual(['Winter', ['B', 'C']]);
+	});
+
+	it('lists a newer confirmed Notebook with its own Pending Sections instead of the older ones', () => {
+		const summer = saved('Summer', 8, [
+			{ name: 'D', pages: 8 },
+			{ name: 'E', pages: 4 }
 		]);
+		expect(waits([winter, summer])).toEqual(['Summer', ['E']]);
+	});
+
+	it('finds Pending Sections in a later Notebook when the earlier one has none', () => {
+		const full = saved('Winter', 8, [{ name: 'A', pages: 8 }]);
+		const summer = saved('Summer', 8, [
+			{ name: 'D', pages: 8 },
+			{ name: 'E', pages: 4 }
+		]);
+		expect(waits([full, summer])).toEqual(['Summer', ['E']]);
+	});
+
+	it('reports Pending Section names trimmed', () => {
+		const padded = saved('Padded', 8, [
+			{ name: 'A', pages: 8 },
+			{ name: '  B  ', pages: 4 }
+		]);
+		expect(waits([padded])).toEqual(['Padded', ['B']]);
 	});
 });
