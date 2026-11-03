@@ -22,18 +22,28 @@ export function dragDirection(x: number, origin: number, lastSpread: number): Dr
 }
 
 /** How far a drag has turned its page, 0 to 1, after the pointer has moved `dx` px from where it pressed. */
-export function dragProgress(dir: DragDirection, dx: number, pageWidth: number): number {
-	return clamp01((-dir * dx) / (pageWidth * DRAG_REACH));
+export function dragProgress(
+	dir: DragDirection,
+	dx: number,
+	pageWidth: number,
+	clamped = true
+): number {
+	const progress = (-dir * dx) / (pageWidth * DRAG_REACH);
+	return clamped ? clamp01(progress) : progress;
 }
 
-/** The spring position a drag puts the book at: `origin` plus the page's progress towards the next spread. */
+/**
+ * The spring position a drag puts the book at: `origin` plus the page's progress towards the next
+ * spread. A page grabbed in flight starts from `grabbed`, the progress it had, instead of from 0.
+ */
 export function dragPosition(
 	origin: number,
 	dir: DragDirection,
 	dx: number,
-	pageWidth: number
+	pageWidth: number,
+	grabbed = 0
 ): number {
-	return origin + dir * dragProgress(dir, dx, pageWidth);
+	return origin + dir * clamp01(grabbed + dragProgress(dir, dx, pageWidth, false));
 }
 
 /** Where a released drag settles: the next spread when it is past halfway, otherwise back where it began. */
