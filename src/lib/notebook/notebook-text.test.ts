@@ -4,6 +4,8 @@ import {
 	freeSummary,
 	noticeOf,
 	previewOf,
+	removeDialogOf,
+	removedNoticeOf,
 	rowMeta,
 	rowsInPageOrder,
 	summaryLine
@@ -142,5 +144,42 @@ describe('rowMeta', () => {
 			'asked for 12 · rounded to 16'
 		);
 		expect(rowMeta({ kind: 'pending', requested: 16, size: 16 })).toBe('16 pages');
+	});
+});
+
+describe('removeDialogOf', () => {
+	it('names the pages that become Free Pages and says the writing stays', () => {
+		expect(removeDialogOf({ name: 'Idea capture', first: 97, last: 112, size: 16 })).toEqual({
+			name: 'Idea capture',
+			description:
+				'Its 16 pages, 97–112, become Free Pages, so a later Section can claim them. The other Sections stay where they are.',
+			note: 'Anything already written on those pages stays on paper.'
+		});
+	});
+
+	it('says "page" for a one-page Section', () => {
+		expect(removeDialogOf({ name: 'Note', first: 5, last: 5, size: 1 })).toMatchObject({
+			description:
+				'Its page, 5, becomes a Free Page, so a later Section can claim it. The other Sections stay where they are.',
+			note: 'Anything already written on that page stays on paper.'
+		});
+	});
+});
+
+describe('removedNoticeOf', () => {
+	const idea = { name: 'Idea capture', colour: 'ochre', first: 97, last: 112, size: 16 } as const;
+
+	it('repeats which pages are Free Pages now', () => {
+		expect(removedNoticeOf(idea, [])).toEqual({
+			name: 'Idea capture',
+			colour: 'ochre',
+			text: 'was removed. Pages 97–112 are Free Pages now.'
+		});
+	});
+
+	it('says which neighbour changed colour', () => {
+		expect(removedNoticeOf(idea, [{ name: 'Calendar', from: 'sage', to: 'clay' }]).text).toBe(
+			'was removed. Pages 97–112 are Free Pages now. Calendar changed from sage to clay, so neighbours never share a colour.'
+		);
 	});
 });

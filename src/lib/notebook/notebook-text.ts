@@ -1,5 +1,6 @@
 import type { SectionColour } from '../design/sections';
-import { freePages, type Notebook, type PlacementOutcome } from '../placement';
+import { freePages, type Notebook, type PlacedSection, type PlacementOutcome } from '../placement';
+import type { Recolour } from './remove-section';
 import { freeRanges } from '../setup/setup-sections';
 
 const pageRange = (first: number, last: number) =>
@@ -113,4 +114,35 @@ export function rowMeta(
 	return row.requested === row.size
 		? pagesOf(row.size)
 		: `asked for ${row.requested} · rounded to ${row.size}`;
+}
+
+const pageSpan = (first: number, last: number) =>
+	first === last ? `${first}` : `${first}–${last}`;
+
+/** The words in the Remove Section Dialog. The title is "Remove <name>?", with the name on a slip. */
+export function removeDialogOf(section: Pick<PlacedSection, 'name' | 'first' | 'last' | 'size'>) {
+	const range = pageSpan(section.first, section.last);
+	const one = section.size === 1;
+	const becomes = one
+		? `Its page, ${range}, becomes a Free Page, so a later Section can claim it.`
+		: `Its ${section.size} pages, ${range}, become Free Pages, so a later Section can claim them.`;
+	return {
+		name: section.name,
+		description: `${becomes} The other Sections stay where they are.`,
+		note: `Anything already written on ${one ? 'that page' : 'those pages'} stays on paper.`
+	};
+}
+
+/** The notice that repeats on the Notebook screen after a Section was removed, with any neighbour that changed colour. */
+export function removedNoticeOf(
+	removed: Pick<PlacedSection, 'name' | 'colour' | 'first' | 'last' | 'size'>,
+	recoloured: Recolour[]
+) {
+	const range = pageSpan(removed.first, removed.last);
+	const freed =
+		removed.size === 1 ? `Page ${range} is a Free Page now.` : `Pages ${range} are Free Pages now.`;
+	const colours = recoloured
+		.map((r) => ` ${r.name} changed from ${r.from} to ${r.to}, so neighbours never share a colour.`)
+		.join('');
+	return { name: removed.name, colour: removed.colour, text: `was removed. ${freed}${colours}` };
 }
