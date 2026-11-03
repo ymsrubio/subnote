@@ -143,3 +143,45 @@
 		@apply bg-background text-foreground type-body;
 	}
 }
+
+/*
+ * Section colour: one class sets a Section's ink and tint paper for everything inside it.
+ * The slip is how a Section's name sits in the room (a card, dialog or sheet), always on its tint.
+ */
+@layer components {
+	.sn-sec--sage {
+		--section-ink: var(--section-sage);
+		--section-tab: var(--section-sage-tint);
+	}
+	.sn-sec--clay {
+		--section-ink: var(--section-clay);
+		--section-tab: var(--section-clay-tint);
+	}
+	.sn-sec--ochre {
+		--section-ink: var(--section-ochre);
+		--section-tab: var(--section-ochre-tint);
+	}
+	.sn-sec--slate {
+		--section-ink: var(--section-slate);
+		--section-tab: var(--section-slate-tint);
+	}
+	.sn-sec--plum {
+		--section-ink: var(--section-plum);
+		--section-tab: var(--section-plum-tint);
+	}
+	.sn-sec--teal {
+		--section-ink: var(--section-teal);
+		--section-tab: var(--section-teal-tint);
+	}
+
+	.sn-slip {
+		display: inline-block;
+		padding: 0 var(--space-2);
+		border-radius: var(--radius-sm);
+		background: var(--section-tab);
+		color: var(--section-ink);
+		box-shadow: var(--shadow-tab);
+		font: var(--text-section-name--font-weight) var(--text-section-name) / 28px var(--font-hand);
+		white-space: nowrap;
+	}
+}
