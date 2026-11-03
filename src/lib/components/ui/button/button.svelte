@@ -63,13 +63,15 @@
 	<!-- eslint-disable svelte/no-navigation-without-resolve -->
 	<a
 		bind:this={ref}
-		data-slot="button"
 		class={cn(buttonVariants({ variant, size }), className)}
 		href={disabled ? undefined : href}
 		aria-disabled={disabled}
 		role={disabled ? 'link' : undefined}
 		tabindex={disabled ? -1 : undefined}
 		{...restProps}
+		data-slot="button"
+		data-variant={variant}
+		data-size={size}
 	>
 		{@render children?.()}
 	</a>
@@ -77,11 +79,13 @@
 {:else}
 	<button
 		bind:this={ref}
-		data-slot="button"
 		class={cn(buttonVariants({ variant, size }), className)}
 		{type}
 		{disabled}
 		{...restProps}
+		data-slot="button"
+		data-variant={variant}
+		data-size={size}
 	>
 		{@render children?.()}
 	</button>
