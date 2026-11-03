@@ -130,6 +130,14 @@ describe.each<Theme>(['light', 'dark'])('contrast in the %s theme', (theme) => {
 			contrast(colour(`section-${section}`), colour(`section-${section}-tint`))
 		).toBeGreaterThanOrEqual(4.5);
 	});
+
+	it.each(sectionColours)('a %s Title Page name reaches 4.5:1 on paper', (section) => {
+		expect(contrast(colour(`section-${section}`), colour('paper'))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('the page number in pencil reaches 4.5:1 on paper', () => {
+		expect(contrast(colour('pencil'), colour('paper'))).toBeGreaterThanOrEqual(4.5);
+	});
 });
 
 it.each(['cover', 'cover-foreground', 'cover-muted-foreground', 'elastic', 'board'])(
