@@ -1,19 +1,16 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import FirstVisit from '$lib/components/first-visit.svelte';
+	import NotebookList from '$lib/components/notebook-list.svelte';
 	import StorageBlocked from '$lib/components/storage-blocked.svelte';
-	import { notebookStore } from '$lib/storage';
+	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
-	let view = $state<'loading' | 'first-visit' | 'blocked'>('loading');
+	let view = $state<'loading' | 'first-visit' | 'blocked' | SavedNotebook[]>('loading');
 
 	onMount(async () => {
 		try {
-			const [saved] = await notebookStore.list();
-			if (saved)
-				await goto(resolve('/notebooks/[id]/setup', { id: saved.id }), { replaceState: true });
-			else view = 'first-visit';
+			const notebooks = await notebookStore.list();
+			view = notebooks.length > 0 ? notebooks : 'first-visit';
 		} catch {
 			view = 'blocked';
 		}
@@ -26,4 +23,6 @@
 	<FirstVisit />
 {:else if view === 'blocked'}
 	<StorageBlocked />
+{:else if view !== 'loading'}
+	<NotebookList notebooks={view} />
 {/if}
