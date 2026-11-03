@@ -24,3 +24,6 @@ vite.config.ts.timestamp-*
 
 # Agent worktrees of this repo
 /.claude/worktrees/
+
+# Verification evidence (see .claude/skills/verify)
+/.verify/
