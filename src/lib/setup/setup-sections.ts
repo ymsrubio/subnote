@@ -52,7 +52,7 @@ export function roundsUpHelp(typed: string, pageCount: number): string {
 	if (digitsOnly.test(digits) && pages >= 1) {
 		if (pages > pageCount) return tooManyPages(pageCount);
 		const size = sectionSize(pages);
-		if (size > pageCount) return tooManyPages(pageCount);
+		if (size > pageCount) return `Rounds up to ${size} pages, more than this Notebook has.`;
 		return `Rounds up to ${size} ${size === 1 ? 'page' : 'pages'}.`;
 	}
 	const sizes = sizesFor(pageCount);

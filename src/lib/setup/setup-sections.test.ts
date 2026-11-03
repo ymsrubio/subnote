@@ -98,7 +98,7 @@ describe('Pages wanted input', () => {
 
 	it('shows the too-many-pages message when the count or its rounded size does not fit', () => {
 		expect(roundsUpHelp('121', 120)).toBe('The Notebook only has 120 pages');
-		expect(roundsUpHelp('65', 120)).toBe('The Notebook only has 120 pages');
+		expect(roundsUpHelp('65', 120)).toBe('Rounds up to 128 pages, more than this Notebook has.');
 		expect(roundsUpHelp('64', 120)).toBe('Rounds up to 64 pages.');
 		expect(roundsUpHelp('99999999999999999999999', 120)).toBe('The Notebook only has 120 pages');
 		expect(roundsUpHelp('2', 1)).toBe('The Notebook only has 1 page');
