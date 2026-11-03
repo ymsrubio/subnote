@@ -1,24 +1,24 @@
 <script lang="ts">
-	import { freePages, gridLabel, gridRows, type GridSection } from '$lib/design/page-grid';
+	import { planGrid, type GridSection } from '$lib/design/page-grid';
 
 	interface Props {
 		/** The Notebook's name, for the grid's label. */
 		name: string;
 		pageCount: number;
-		/** Placed Sections. The grid does no placement: each runs `first` to `last`, `first` being its Title Page. */
+		/** Placed Sections. The grid does no placement: each is `size` pages from `first`, `first` being its Title Page. */
 		sections: GridSection[];
 	}
 
 	let { name, pageCount, sections }: Props = $props();
 
-	const rows = $derived(gridRows(pageCount, sections));
-	const free = $derived(freePages(pageCount, sections));
+	const plan = $derived(planGrid(name, pageCount, sections));
+	const free = $derived(plan.free);
 </script>
 
 <div class="grid gap-3 rounded-lg border bg-card p-4 text-card-foreground">
 	<div class="sn-grid-frame">
-		<div class="sn-grid" role="img" aria-label={gridLabel(name, pageCount, sections)}>
-			{#each rows as row (row.first)}
+		<div class="sn-grid" role="img" aria-label={plan.label}>
+			{#each plan.rows as row (row.first)}
 				<div class="sn-grid__row">
 					<span class="sn-grid__number text-muted-foreground type-numeral">{row.first}</span>
 					<div class="sn-grid__squares">
@@ -34,7 +34,9 @@
 					</div>
 					<span class="sn-grid__names">
 						{#each row.titles as section (section.first)}
-							<span class="sn-grid__name sn-slip sn-sec--{section.colour}">{section.name}</span>
+							<span class="sn-grid__name sn-slip sn-sec--{section.colour}" title={section.name}
+								>{section.name}</span
+							>
 						{/each}
 					</span>
 				</div>
@@ -53,12 +55,6 @@
 	.sn-grid {
 		display: grid;
 		gap: 3px;
-	}
-	.sn-grid__row {
-		display: grid;
-		grid-template-columns: 1fr;
-		align-items: center;
-		column-gap: var(--space-2);
 	}
 	.sn-grid__number,
 	.sn-grid__names {
@@ -85,22 +81,34 @@
 		background: var(--paper);
 		box-shadow: inset 0 0 0 1px var(--input);
 	}
-	.sn-grid__names {
-		gap: var(--space-1);
-		white-space: nowrap;
-	}
 
 	@container (min-width: 680px) {
+		.sn-grid {
+			grid-template-columns: 2.5rem minmax(0, 1fr) fit-content(18rem);
+			column-gap: var(--space-2);
+		}
 		.sn-grid__row {
-			grid-template-columns: 2.5rem 1fr 8.5rem;
+			display: grid;
+			grid-column: 1 / -1;
+			grid-template-columns: subgrid;
+			align-items: center;
 		}
 		.sn-grid__number {
 			display: block;
 			text-align: right;
 		}
+		/* Zero height, centred on the row: slips never make a row taller than its squares. */
 		.sn-grid__names {
 			display: flex;
-			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-1);
+			block-size: 0;
+			min-inline-size: 0;
+		}
+		.sn-grid__name {
+			min-inline-size: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 	}
 </style>
