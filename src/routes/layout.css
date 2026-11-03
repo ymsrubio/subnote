@@ -184,4 +184,152 @@
 		font: var(--text-section-name--font-weight) var(--text-section-name) / 28px var(--font-hand);
 		white-space: nowrap;
 	}
+	/* Linen: the surface for a Notebook's lists. The same in both themes. */
+	.sn-linen {
+		background-color: var(--cover);
+		background-image:
+			repeating-linear-gradient(0deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 3px),
+			repeating-linear-gradient(90deg, rgb(0 0 0 / 0.08) 0 1px, transparent 1px 3px);
+		color: var(--cover-foreground);
+	}
+
+	/* SectionTab: the index tab sticking out of a Title Page. Place it on the page's edge. */
+	.sn-tab {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		min-height: 64px;
+		padding: var(--space-2) 0;
+		border: 0;
+		border-radius: 0 var(--radius-tab) var(--radius-tab) 0;
+		background: var(--section-tab);
+		color: var(--section-ink);
+		box-shadow: var(--shadow-tab);
+		font: var(--text-tab--font-weight) var(--text-tab) / var(--text-tab--line-height)
+			var(--font-hand);
+		writing-mode: vertical-rl;
+		white-space: nowrap;
+		cursor: pointer;
+		translate: 0;
+		transition: translate 120ms ease-out;
+	}
+	.sn-tab--left {
+		border-radius: var(--radius-tab) 0 0 var(--radius-tab);
+	}
+	.sn-tab[aria-current='true'] {
+		translate: 6px;
+	}
+	.sn-tab--left[aria-current='true'] {
+		translate: -6px;
+	}
+	@media (max-width: 559.98px) {
+		.sn-tab {
+			width: 14px;
+			min-height: 40px;
+			padding: 0;
+		}
+		.sn-tab__label {
+			display: none;
+		}
+	}
+
+	/* SectionRow: slips of a Section's paper on linen, grouped as one list. */
+	.sn-seclist {
+		display: grid;
+		gap: 6px;
+		margin: 0;
+		padding: var(--space-3) calc(var(--space-3) + 14px) var(--space-3) var(--space-3);
+		list-style: none;
+	}
+	.sn-secrow {
+		position: relative;
+		display: grid;
+		grid-template-columns: 1fr auto auto;
+		align-items: center;
+		column-gap: var(--space-3);
+		min-height: 52px;
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius-md);
+		background: var(--section-tab);
+		color: var(--slip-foreground);
+		box-shadow: var(--shadow-slip);
+		translate: 0;
+		transition:
+			translate 120ms ease-out,
+			box-shadow 120ms ease-out;
+	}
+	.sn-secrow::after {
+		content: '';
+		position: absolute;
+		top: 12px;
+		bottom: 12px;
+		left: 100%;
+		width: 6px;
+		border-radius: 0 var(--radius-tab) var(--radius-tab) 0;
+		background: var(--section-ink);
+		transition: width 120ms ease-out;
+	}
+	.sn-secrow[aria-current='true'] {
+		translate: 8px;
+		box-shadow: var(--shadow-slip-raised);
+	}
+	.sn-secrow[aria-current='true']::after {
+		width: 10px;
+		top: 6px;
+		bottom: 6px;
+	}
+	.sn-secrow__name {
+		margin: 0;
+		color: var(--section-ink);
+		font: var(--text-section-name--font-weight) var(--text-section-name) /
+			var(--text-section-name--line-height) var(--font-hand);
+	}
+	.sn-secrow__mark {
+		margin-left: var(--space-2);
+		color: var(--slip-muted-foreground);
+		font: var(--text-pencil-note--font-weight) var(--text-pencil-note) /
+			var(--text-pencil-note--line-height) var(--font-hand);
+	}
+	.sn-secrow__meta {
+		margin: 0;
+		color: var(--slip-muted-foreground);
+		font: var(--text-caption--font-weight) var(--text-caption) / var(--text-caption--line-height)
+			var(--font-ui);
+		letter-spacing: var(--text-caption--letter-spacing);
+	}
+	.sn-secrow__range {
+		color: var(--slip-foreground);
+		font: var(--text-label--font-weight) var(--text-label) / var(--text-label--line-height)
+			var(--font-ui);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.sn-secrow__badge {
+		padding: 0 var(--space-2);
+		border: 1px solid var(--slip-muted-foreground);
+		border-radius: var(--radius-full);
+		color: var(--slip-foreground);
+		font: var(--text-caption--font-weight) var(--text-caption) / 20px var(--font-ui);
+	}
+	.sn-secrow__action {
+		grid-column: 3;
+		grid-row: 1 / span 2;
+		justify-self: end;
+	}
+	.sn-secrow--free,
+	.sn-secrow--pending {
+		background: var(--paper);
+	}
+	.sn-secrow--free::after,
+	.sn-secrow--pending::after {
+		display: none;
+	}
+	.sn-secrow--free .sn-secrow__name {
+		color: var(--slip-muted-foreground);
+		font: 700 var(--text-label) / var(--text-label--line-height) var(--font-ui);
+	}
+	.sn-secrow--pending {
+		box-shadow: inset 0 0 0 1px var(--input);
+	}
 }
