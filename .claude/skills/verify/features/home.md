@@ -1,6 +1,6 @@
 # First visit, New Notebook and Setup
 
-`/` decides from what is saved on this device (`localStorage` key `subnote:notebooks:v1`). With no Notebook it shows the first-visit room. With one it goes to `/notebooks/<id>/setup`. The design-system showcase is at `/showcase` and is not linked from here.
+`/` decides from what is saved on this device (`localStorage` key `subnote:notebooks:v1`). With no Notebook it shows the first-visit room. With one it shows the Notebook list (cover header, a card per Notebook with its page strip, slips and counts, and the Pending Sections card with a disabled `Start next Notebook`). A card opens `/notebooks/<id>`, or `/notebooks/<id>/setup` until Setup is confirmed. The design-system showcase is at `/showcase` and is not linked from here.
 
 ## Sub-features
 
@@ -22,7 +22,7 @@ Preconditions:
 - **First visit.** `navigate` to `/`. The `h1` reads `Give every page a purpose` and `button "New Notebook"` exists.
 - **Form.** Click `New Notebook`, then `Start Setup` on the empty form. Errors `Give the Notebook a name` and `Enter how many pages it has` appear under the fields. Measure `[data-slot=input]` heights: 44 below 768px, 36 from 768px. The sheet is `[data-slot=sheet-content]`.
 - **Setup.** Fill `Notebook name` and `Pages`, press Enter. The URL becomes `/notebooks/<id>/setup`, the title reads `Setup · <name> · Subnote`, and the visible `Confirm Setup` button is disabled and its `aria-describedby` text is the reason. Phone and desktop render separate trees, so only one is visible at a time.
-- **Reload.** `navigate` to `/` again. It lands on the same Setup URL.
+- **Reload.** `navigate` to `/` again. It shows the same list.
 
 ## Gotchas
 
