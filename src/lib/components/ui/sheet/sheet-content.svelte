@@ -25,7 +25,7 @@
 		class={cn(
 			'fixed inset-x-0 bottom-0 z-10 grid max-h-[calc(100dvh-24px)] gap-4 overflow-y-auto overscroll-contain rounded-t-lg border border-b-0 border-border bg-popover p-6 pt-8 text-popover-foreground shadow-(--shadow-sheet) duration-200 outline-none data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom',
 			'max-md:[&_:is(button,input)]:h-11',
-			'md:inset-auto md:top-1/2 md:left-1/2 md:max-h-[calc(100dvh-48px)] md:w-[calc(100%-2rem)] md:max-w-[420px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border-b md:pt-6 md:duration-100 md:data-open:fade-in-0 md:data-open:zoom-in-95 md:data-open:slide-in-from-bottom-0 md:data-closed:fade-out-0 md:data-closed:zoom-out-95 md:data-closed:slide-out-to-bottom-0',
+			'md:inset-auto md:top-1/2 md:left-1/2 md:max-h-[calc(100dvh-48px)] md:w-[calc(100%-2rem)] md:max-w-[420px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border-b md:pt-6 md:duration-100 md:data-open:fade-in-0 md:data-open:slide-in-from-bottom-0 md:data-open:zoom-in-95 md:data-closed:fade-out-0 md:data-closed:slide-out-to-bottom-0 md:data-closed:zoom-out-95',
 			className
 		)}
 		{...restProps}
