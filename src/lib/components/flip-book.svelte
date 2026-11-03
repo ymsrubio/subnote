@@ -39,7 +39,6 @@
 	onMount(() => (mounted = true));
 
 	const wide = new MediaQuery('min-width: 768px', true);
-	const strips = new MediaQuery('max-width: 559.98px', false);
 	const reducedMotion = new MediaQuery('prefers-reduced-motion: reduce', false);
 
 	const width = $derived(wide.current ? 340 : 158);
@@ -125,7 +124,7 @@
 	const tabLayout = $derived.by(() => {
 		const room = height - 24;
 		const natural = tabs.map((tab) =>
-			strips.current ? 40 : Math.max(64, Math.ceil(tab.section.name.length * 5.8 + 16))
+			!wide.current ? 40 : Math.max(64, Math.ceil(tab.section.name.length * 5.8 + 16))
 		);
 		const total = natural.reduce((sum, h) => sum + h, 0);
 		const squeeze = Math.min(1, room / Math.max(total, 1));
@@ -199,6 +198,7 @@
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 	<div
 		class="sn-flip"
+		class:sn-flip--strips={!wide.current}
 		role="group"
 		aria-roledescription="book"
 		aria-label="Notebook: use the left and right arrow keys to turn the pages"
@@ -238,7 +238,7 @@
 			class="sn-flip__zone sn-flip__zone--left"
 			style:width="{zone}px"
 			aria-label="Previous pages"
-			disabled={target <= 0}
+			aria-disabled={target <= 0}
 			onclick={() => turnBy(-1)}
 		></button>
 		<button
@@ -246,7 +246,7 @@
 			class="sn-flip__zone sn-flip__zone--right"
 			style:width="{zone}px"
 			aria-label="Next pages"
-			disabled={target >= last}
+			aria-disabled={target >= last}
 			onclick={() => turnBy(1)}
 		></button>
 	</div>
@@ -289,6 +289,14 @@
 		min-height: 0;
 		overflow: hidden;
 	}
+	/* Where the pages are 158px wide the names would not fit, so every width up to 768px gets strips. */
+	.sn-flip--strips .sn-flip__tab :global(.sn-tab) {
+		width: 14px;
+		padding: 0;
+	}
+	.sn-flip--strips .sn-flip__tab :global(.sn-tab__label) {
+		display: none;
+	}
 	.sn-flip__tab--right {
 		left: 100%;
 	}
@@ -316,7 +324,7 @@
 	.sn-flip__zone--right {
 		right: 0;
 	}
-	.sn-flip__zone:disabled {
+	.sn-flip__zone[aria-disabled='true'] {
 		pointer-events: none;
 	}
 	.sn-flip__zone:focus-visible {
