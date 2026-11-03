@@ -47,10 +47,6 @@ The canvas follows one example: Spring notebook (120 pages) gets its Setup, Read
 - **The first visit is the room, not linen,** on phone and desktop.
 - **Kept from the design system on purpose:** 8px corners on cards (paper has crisp corners), and no bottom tab bar, because there are only two places to go: the Notebook list and a Notebook.
 
-## Open
-
-- Desktop Setup for the next Notebook (`DeskNextNotebook`): the side pane overflows at 960px tall (six slips plus the note).
-
 ## Flip-book
 
 The moodboard's prototype settles how the flip-book should work. These rules carry into the real component:
