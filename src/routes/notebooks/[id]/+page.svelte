@@ -3,23 +3,42 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import X from '@lucide/svelte/icons/x';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import CoverHeader from '$lib/components/cover-header.svelte';
 	import NotebookAddSectionSheet from '$lib/components/notebook-add-section-sheet.svelte';
 	import NotebookMissing from '$lib/components/notebook-missing.svelte';
+	import RemoveSectionDialog from '$lib/components/remove-section-dialog.svelte';
 	import SectionRow from '$lib/components/section-row.svelte';
 	import StorageBlocked from '$lib/components/storage-blocked.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { saveAddSection } from '$lib/notebook/add-section';
-	import { noticeOf, rowMeta, rowsInPageOrder, summaryLine } from '$lib/notebook/notebook-text';
-	import { freePages, type PlacementOutcome, type SectionRequest } from '$lib/placement';
+	import {
+		noticeOf,
+		removedNoticeOf,
+		rowMeta,
+		rowsInPageOrder,
+		summaryLine
+	} from '$lib/notebook/notebook-text';
+	import { saveRemoveSection } from '$lib/notebook/remove-section';
+	import {
+		freePages,
+		type PlacedSection,
+		type PlacementOutcome,
+		type SectionRequest
+	} from '$lib/placement';
 	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
+	type Removing = Pick<PlacedSection, 'name' | 'colour' | 'first' | 'last' | 'size'>;
 	let saved = $state<SavedNotebook | 'missing' | 'blocked'>();
 	let sheetOpen = $state(false);
-	let notice = $state<ReturnType<typeof noticeOf>>(null);
+	let notice = $state<{ name: string; colour: PlacedSection['colour']; text: string } | null>(null);
+	let removeOpen = $state(false);
+	let removing = $state<Removing | null>(null);
+	let addButtonEl = $state<HTMLElement | null>(null);
+	let removedJustNow = false;
 
 	const desk = new MediaQuery('min-width: 768px');
 	const notebookId = () => page.params.id ?? '';
@@ -71,6 +90,66 @@
 		} catch {
 			return 'Subnote could not save this on your device. Check that storage is allowed.';
 		}
+	}
+
+	function chooseRemove(section: Removing) {
+		removing = section;
+		removedJustNow = false;
+		removeOpen = true;
+	}
+
+	/** Removes the chosen Section. Resolves to a message for the Dialog, or undefined once it closes. */
+	async function removeChosen(): Promise<string | undefined> {
+		const section = removing;
+		if (!section) return undefined;
+		try {
+			const result = await saveRemoveSection(notebookStore, notebookId(), section);
+			switch (result.status) {
+				case 'saved':
+					saved = result.saved;
+					notice = removedNoticeOf(result.removed, result.recoloured);
+					removedJustNow = true;
+					removeOpen = false;
+					return undefined;
+				case 'gone':
+					saved = result.saved;
+					notice = {
+						name: section.name,
+						colour: section.colour,
+						text: 'was already removed in another tab.'
+					};
+					removeOpen = false;
+					return undefined;
+				case 'changed':
+					saved = result.saved;
+					notice = {
+						name: section.name,
+						colour: section.colour,
+						text: 'changed in another tab, so nothing was removed. Check the list, then try again.'
+					};
+					removeOpen = false;
+					return undefined;
+				case 'unconfirmed':
+					removeOpen = false;
+					await goto(resolve('/notebooks/[id]/setup', { id: notebookId() }), {
+						replaceState: true
+					});
+					return undefined;
+				case 'missing':
+					removeOpen = false;
+					saved = 'missing';
+					return undefined;
+			}
+		} catch {
+			return 'Subnote could not save this on your device. Check that storage is allowed.';
+		}
+	}
+
+	/** After a removal the row is gone, so focus goes to Add Section instead of the top of the page. */
+	function afterRemoveDialog(event: Event) {
+		if (!removedJustNow) return;
+		event.preventDefault();
+		tick().then(() => addButtonEl?.focus());
 	}
 </script>
 
@@ -138,7 +217,18 @@
 							asked={row.requested}
 							size={row.size}
 							meta={rowMeta(row)}
-						/>
+						>
+							{#snippet action()}
+								<Button
+									variant="ghost"
+									size="icon"
+									class="text-slip-foreground hover:bg-black/10 hover:text-slip-foreground max-md:size-11"
+									aria-label="Options for {row.name}"
+									aria-haspopup="dialog"
+									onclick={() => chooseRemove(row)}><Ellipsis /></Button
+								>
+							{/snippet}
+						</SectionRow>
 					{:else}
 						<SectionRow kind="free" first={row.first} last={row.last} meta={rowMeta(row)} />
 					{/if}
@@ -171,6 +261,7 @@
 
 	{#snippet addButton()}
 		<Button
+			bind:ref={addButtonEl}
 			variant="paper"
 			class="h-11 justify-self-start md:h-9"
 			onclick={() => (sheetOpen = true)}>Add Section</Button
@@ -212,4 +303,10 @@
 	{/if}
 
 	<NotebookAddSectionSheet bind:open={sheetOpen} saved={current} onadd={addSection} />
+	<RemoveSectionDialog
+		bind:open={removeOpen}
+		section={removing}
+		onremove={removeChosen}
+		onCloseAutoFocus={afterRemoveDialog}
+	/>
 {/if}
