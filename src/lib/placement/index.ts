@@ -139,6 +139,28 @@ function pendingFor(notebook: Notebook, request: SectionRequest, slot: number): 
 	};
 }
 
+/** Places every Section it can, like `setupNotebook`, and keeps a Section asking for more pages than the Notebook has as a Pending Section instead of throwing. */
+export function setupNotebookKeepingTooBig(
+	pageCount: number,
+	requests: SectionRequest[]
+): Notebook {
+	const fits = requests.filter((r) => r.pages <= pageCount);
+	const notebook = setupNotebook(pageCount, fits);
+	const tooBig = requests.filter((r) => r.pages > pageCount);
+	const pending = tooBig.map((request, i): PendingSection => {
+		const name = request.name.trim();
+		const slot = notebook.sections.length + notebook.pending.length + i;
+		return {
+			name,
+			requested: request.pages,
+			size: sectionSize(request.pages),
+			reason: `asks for ${request.pages} pages, and this Notebook has ${pageCount}`,
+			colour: pickColour(slot, [])
+		};
+	});
+	return { ...notebook, pending: [...notebook.pending, ...pending] };
+}
+
 function tryPlace(notebook: Notebook, request: SectionRequest): PlacementOutcome {
 	const slot = notebook.sections.length + notebook.pending.length;
 	const section = placeInBlock(notebook, request, slot);
