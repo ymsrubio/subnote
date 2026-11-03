@@ -1,8 +1,16 @@
 <script module lang="ts">
 	export type SectionRowKind =
-		| { kind: 'placed'; colour: SectionColour; first: number; last: number }
+		| {
+				kind: 'placed';
+				colour: SectionColour;
+				name: string;
+				first: number;
+				last: number;
+				/** The Section open in the book. */
+				current?: boolean;
+		  }
 		| { kind: 'free'; first: number; last: number }
-		| { kind: 'pending'; colour: SectionColour };
+		| { kind: 'pending'; colour: SectionColour; name: string };
 </script>
 
 <script lang="ts">
@@ -10,31 +18,27 @@
 	import type { SectionColour } from '$lib/design/sections';
 
 	type Props = SectionRowKind & {
-		/** The Section's full name. Free Pages rows are always "Free Pages". */
-		name?: string;
 		/** Pages the person asked for. The rounding line shows only when `size` differs. */
 		asked?: number;
 		/** Pages the Section was rounded to. */
 		size?: number;
-		/** The Section open in the book. */
-		current?: boolean;
 		/** A short note after the name: "from Spring", "was Pending". */
 		mark?: string;
 		/** A ghost icon button on the right. Give it `text-slip-foreground`: a slip stays paper at night, so the button's own text colour would vanish. */
 		action?: Snippet;
 	};
 
-	let { name, asked, size, current = false, mark, action, ...row }: Props = $props();
+	let { asked, size, mark, action, ...row }: Props = $props();
 
 	const rounded = $derived(asked !== undefined && size !== undefined && asked !== size);
-	const label = $derived(row.kind === 'free' ? 'Free Pages' : name);
+	const label = $derived(row.kind === 'free' ? 'Free Pages' : row.name);
 </script>
 
 <li
 	class="sn-secrow {row.kind === 'free' ? 'sn-secrow--free' : ''} {row.kind === 'pending'
 		? 'sn-secrow--pending'
 		: ''} {row.kind !== 'free' ? `sn-sec--${row.colour}` : ''}"
-	aria-current={current ? 'true' : undefined}
+	aria-current={row.kind === 'placed' && row.current ? 'true' : undefined}
 >
 	<div class="sn-secrow__body">
 		<p class="sn-secrow__name">
