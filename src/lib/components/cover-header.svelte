@@ -24,7 +24,7 @@
 </script>
 
 <header
-	class="linen relative overflow-hidden bg-cover pt-2 pb-20 text-cover-foreground md:pt-12 md:pb-24"
+	class="linen relative overflow-hidden bg-cover pt-2 pb-20 text-cover-foreground md:pt-12 md:pb-22"
 >
 	<span
 		aria-hidden="true"
