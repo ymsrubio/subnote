@@ -15,7 +15,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Sheet from '$lib/components/ui/sheet';
-	import { freePages, setupNotebook, type SectionRequest } from '$lib/placement';
+	import { freePages, setupNotebookKeepingTooBig, type SectionRequest } from '$lib/placement';
 	import {
 		confirmBlockedReason,
 		freeRanges,
@@ -23,6 +23,7 @@
 		requestsOf,
 		titlePages
 	} from '$lib/setup/setup-sections';
+	import { carriedMark, prefillNote } from '$lib/setup/next-notebook';
 	import { confirmStoredSetup, saveSetupEdit, type SetupSave } from '$lib/setup/save-setup';
 	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
@@ -84,7 +85,7 @@
 	const editRequests = (edit: (requests: SectionRequest[]) => SectionRequest[]) =>
 		apply(() =>
 			saveSetupEdit(notebookStore, notebookId(), (notebook) =>
-				setupNotebook(notebook.pageCount, edit(requestsOf(notebook)))
+				setupNotebookKeepingTooBig(notebook.pageCount, edit(requestsOf(notebook)))
 			)
 		);
 
@@ -123,6 +124,7 @@
 	{@const { name, notebook } = current}
 	{@const free = freePages(notebook)}
 	{@const reason = confirmBlockedReason(notebook)}
+	{@const note = prefillNote(current)}
 	{@const taken = [...notebook.sections, ...notebook.pending].map((s) => s.name)}
 
 	{#snippet removeButton(sectionName: string)}
@@ -139,7 +141,12 @@
 		<PageGrid {name} pageCount={notebook.pageCount} sections={notebook.sections} />
 	{/snippet}
 
-	{#snippet note()}
+	{#snippet notes()}
+		{#if note}
+			<p class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
+				{note}
+			</p>
+		{/if}
 		{#if notebook.sections.length === 0 && notebook.pending.length === 0}
 			<p class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
 				Add each Section you plan to keep in this notebook. Subnote places them largest first, and
@@ -163,6 +170,7 @@
 						last={section.last}
 						asked={section.requested}
 						size={section.size}
+						mark={carriedMark(current, section.name)}
 					>
 						{#snippet action()}{@render removeButton(section.name)}{/snippet}
 					</SectionRow>
@@ -191,6 +199,7 @@
 							name={pending.name}
 							asked={pending.requested}
 							size={pending.size}
+							mark={carriedMark(current, pending.name)}
 						>
 							{#snippet action()}{@render removeButton(pending.name)}{/snippet}
 						</SectionRow>
@@ -226,7 +235,9 @@
 
 	{#if desk.current}
 		<div class="grid min-h-dvh grid-cols-[400px_minmax(0,1fr)]">
-			<aside class="sn-linen grid content-start gap-4 p-6">
+			<aside
+				class="sn-linen sticky top-0 grid h-dvh content-start gap-4 self-start overflow-y-auto overscroll-contain p-6"
+			>
 				<Button
 					variant="ghost"
 					class="-ml-2 justify-self-start text-cover-foreground hover:bg-white/10 hover:text-cover-foreground"
@@ -238,7 +249,7 @@
 						{name} · {notebook.pageCount} pages
 					</p>
 				</header>
-				{@render note()}
+				{@render notes()}
 				<div class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
 					<AddSectionForm pageCount={notebook.pageCount} {taken} onadd={(r) => addSection(r)} />
 				</div>
@@ -274,7 +285,7 @@
 				{@render grid()}
 			</CoverHeader>
 			<main class="grid gap-4 px-4 pt-4 pb-40">
-				{@render note()}
+				{@render notes()}
 				<Button variant="paper" class="h-11 justify-self-start" onclick={() => (sheetOpen = true)}
 					>Add Section</Button
 				>
