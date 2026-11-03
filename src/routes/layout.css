@@ -285,6 +285,30 @@
 		font: var(--text-section-name--font-weight) var(--text-section-name) /
 			var(--text-section-name--line-height) var(--font-hand);
 	}
+	.sn-secrow__open {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+	/* The button's own box is the name, but its ::after stretches over the whole row, so the row is the tap target. */
+	.sn-secrow__open::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+	}
+	.sn-secrow__open:focus-visible {
+		outline: none;
+	}
+	.sn-secrow__open:focus-visible::after {
+		outline: 2px solid var(--ring);
+		outline-offset: -2px;
+		border-radius: var(--radius-md);
+	}
 	.sn-secrow__mark {
 		display: inline-block;
 		margin-left: var(--space-2);
@@ -315,6 +339,8 @@
 		font: var(--text-caption--font-weight) var(--text-caption) / 20px var(--font-ui);
 	}
 	.sn-secrow__action {
+		/* Above the stretched open button, so Options stays its own target. */
+		position: relative;
 		grid-column: 3;
 		grid-row: 1 / span 2;
 		justify-self: end;

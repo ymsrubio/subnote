@@ -7,6 +7,7 @@
 	import X from '@lucide/svelte/icons/x';
 	import { onMount, tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
+	import FlipBook from '$lib/components/flip-book.svelte';
 	import CoverHeader from '$lib/components/cover-header.svelte';
 	import NotebookAddSectionSheet from '$lib/components/notebook-add-section-sheet.svelte';
 	import NotebookMissing from '$lib/components/notebook-missing.svelte';
@@ -14,6 +15,7 @@
 	import SectionRow from '$lib/components/section-row.svelte';
 	import StorageBlocked from '$lib/components/storage-blocked.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { bookPages, spreadOfSection } from '$lib/notebook/book-pages';
 	import { saveAddSection } from '$lib/notebook/add-section';
 	import {
 		noticeOf,
@@ -39,6 +41,9 @@
 	let removing = $state<Removing | null>(null);
 	let addButtonEl = $state<HTMLElement | null>(null);
 	let removedJustNow = false;
+	let spread = $state(0);
+	/** The width of the desk or board the book sits on, so the book can shrink to fit it. */
+	let deskWidth = $state(Infinity);
 
 	const desk = new MediaQuery('min-width: 768px');
 	const notebookId = () => page.params.id ?? '';
@@ -217,6 +222,7 @@
 							asked={row.requested}
 							size={row.size}
 							meta={rowMeta(row)}
+							onopen={() => (spread = spreadOfSection(row))}
 						>
 							{#snippet action()}
 								<Button
@@ -268,8 +274,12 @@
 		>
 	{/snippet}
 
+	{#snippet book(roomAround: number)}
+		<FlipBook pages={bookPages(notebook)} bind:spread available={deskWidth - roomAround} />
+	{/snippet}
+
 	{#if desk.current}
-		<main class="grid min-h-dvh grid-cols-[400px_minmax(0,1fr)]">
+		<main class="grid min-h-dvh grid-cols-[clamp(300px,34vw,400px)_minmax(0,1fr)]">
 			<div class="sn-linen grid content-start gap-4 p-6">
 				{@render back()}
 				<header class="grid gap-1">
@@ -280,7 +290,12 @@
 				{@render lists()}
 				{@render addButton()}
 			</div>
-			<div class="bg-desk" aria-hidden="true"></div>
+			<div
+				class="grid place-items-center overflow-hidden bg-desk px-6 py-10"
+				bind:clientWidth={deskWidth}
+			>
+				<div class="w-fit shadow-(--shadow-book)">{@render book(48)}</div>
+			</div>
 		</main>
 	{:else}
 		<div class="sn-linen min-h-dvh">
@@ -295,6 +310,12 @@
 				tabs={notebook.sections.map((s) => s.colour)}
 			/>
 			<main class="grid gap-4 px-4 pb-10">
+				<div
+					class="-mx-4 grid place-items-center overflow-hidden bg-board px-4 py-8"
+					bind:clientWidth={deskWidth}
+				>
+					<div class="w-fit shadow-(--shadow-book-on-cover)">{@render book(32)}</div>
+				</div>
 				{@render noticeCard()}
 				{@render lists()}
 				{@render addButton()}
