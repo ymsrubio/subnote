@@ -57,11 +57,31 @@ describe('local notebook store', () => {
 		expect(await store.list()).toEqual([]);
 	});
 
-	it('drops stored entries that are not whole Notebooks and keeps the good ones', async () => {
+	it('keeps the unreadable text under a backup key before saving over it', async () => {
+		const storage = fakeStorage({ [storageKey]: '{oops' });
+		const saved = newSavedNotebook('a', 'Spring notebook', 120);
+		await createLocalNotebookStore(() => storage).save(saved);
+		const backups = [...storage.items].filter(([key]) => key.startsWith(`${storageKey}:corrupt-`));
+		expect(backups.map(([, value]) => value)).toEqual(['{oops']);
+		expect(JSON.parse(storage.items.get(storageKey) ?? '')).toEqual([saved]);
+	});
+
+	it('keeps valid JSON that is not a list the same way', async () => {
+		const storage = fakeStorage({ [storageKey]: '{"notebooks":[1]}' });
+		await createLocalNotebookStore(() => storage).save(newSavedNotebook('a', 'Spring', 10));
+		const backups = [...storage.items].filter(([key]) => key.startsWith(`${storageKey}:corrupt-`));
+		expect(backups.map(([, value]) => value)).toEqual(['{"notebooks":[1]}']);
+	});
+
+	it('hides entries that are not whole Notebooks but keeps them in storage across a save', async () => {
 		const good = newSavedNotebook('a', 'Spring notebook', 120);
 		const broken = { ...good, id: 'b', notebook: { ...good.notebook, pageCount: 'many' } };
 		const storage = fakeStorage({ [storageKey]: JSON.stringify([broken, good, 7, null]) });
-		expect(await createLocalNotebookStore(() => storage).list()).toEqual([good]);
+		const store = createLocalNotebookStore(() => storage);
+		expect(await store.list()).toEqual([good]);
+		const added = newSavedNotebook('c', 'Autumn', 30);
+		await store.save(added);
+		expect(JSON.parse(storage.items.get(storageKey) ?? '')).toEqual([good, added, broken, 7, null]);
 	});
 });
 
@@ -86,6 +106,11 @@ describe('parseSavedNotebook', () => {
 		expect(parseSavedNotebook(withSections)).toEqual({ ok: true, value: withSections });
 	});
 
+	it('accepts a page count above the form limit', () => {
+		const big = { ...good, notebook: { ...good.notebook, pageCount: 5000 } };
+		expect(parseSavedNotebook(big)).toEqual({ ok: true, value: big });
+	});
+
 	it.each([
 		['not an object', 'text'],
 		['no id', { ...good, id: '' }],
@@ -93,10 +118,6 @@ describe('parseSavedNotebook', () => {
 		['setupConfirmed as text', { ...good, setupConfirmed: 'no' }],
 		['a page count of 0', { ...good, notebook: { ...good.notebook, pageCount: 0 } }],
 		['a fractional page count', { ...good, notebook: { ...good.notebook, pageCount: 1.5 } }],
-		[
-			'a page count far beyond any paper notebook',
-			{ ...good, notebook: { ...good.notebook, pageCount: 1e9 } }
-		],
 		['sections that are not a list', { ...good, notebook: { ...good.notebook, sections: {} } }],
 		[
 			'a Section with an unknown colour',

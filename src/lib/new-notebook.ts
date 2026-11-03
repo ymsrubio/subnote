@@ -1,4 +1,5 @@
-import { maxPageCount } from './storage/saved-notebook';
+/** Form limit only. Storage accepts any positive page count, so raising this never drops a saved Notebook. */
+export const maxPageCount = 1000;
 
 export interface NewNotebookInput {
 	name: string;

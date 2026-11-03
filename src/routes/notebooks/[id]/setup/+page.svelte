@@ -5,25 +5,33 @@
 	import CoverHeader from '$lib/components/cover-header.svelte';
 	import PageGrid from '$lib/components/page-grid.svelte';
 	import SectionRow from '$lib/components/section-row.svelte';
+	import StorageBlocked from '$lib/components/storage-blocked.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { freePages } from '$lib/placement';
 	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
-	let saved = $state<SavedNotebook | 'missing'>();
+	let saved = $state<SavedNotebook | 'missing' | 'blocked'>();
 
 	onMount(async () => {
-		saved = (await notebookStore.get(page.params.id ?? '')) ?? 'missing';
+		try {
+			saved = (await notebookStore.get(page.params.id ?? '')) ?? 'missing';
+		} catch {
+			saved = 'blocked';
+		}
 	});
 
 	const reason = 'Add a Section to confirm Setup.';
 </script>
 
 <svelte:head
-	><title>{saved && saved !== 'missing' ? `Setup · ${saved.name}` : 'Setup'} · Subnote</title
+	><title
+		>{saved && saved !== 'missing' && saved !== 'blocked' ? `Setup · ${saved.name}` : 'Setup'} · Subnote</title
 	></svelte:head
 >
 
-{#if saved === 'missing'}
+{#if saved === 'blocked'}
+	<StorageBlocked />
+{:else if saved === 'missing'}
 	<main class="mx-auto grid min-h-dvh max-w-md content-center justify-items-start gap-4 px-5">
 		<h1 class="type-cover-title">That Notebook isn't on this device</h1>
 		<p class="text-muted-foreground">

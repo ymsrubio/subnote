@@ -15,8 +15,6 @@ export interface SavedNotebook {
 	notebook: Notebook;
 }
 
-export const maxPageCount = 1000;
-
 /** A new Notebook with its Setup unconfirmed: every Page is a Free Page. */
 export function newSavedNotebook(id: string, name: string, pageCount: number): SavedNotebook {
 	return { id, name, setupConfirmed: false, notebook: setupNotebook(pageCount, []) };
@@ -63,7 +61,7 @@ export function parseSavedNotebook(value: unknown): Parsed<SavedNotebook> {
 	if (typeof id !== 'string' || id === '') return fail;
 	if (typeof name !== 'string' || name.trim() === '') return fail;
 	if (typeof setupConfirmed !== 'boolean') return fail;
-	if (!isCount(pageCount) || pageCount > maxPageCount) return fail;
+	if (!isCount(pageCount)) return fail;
 	if (!Array.isArray(sections) || !sections.every(isPlaced)) return fail;
 	if (!Array.isArray(pending) || !pending.every(isPending)) return fail;
 	return {
