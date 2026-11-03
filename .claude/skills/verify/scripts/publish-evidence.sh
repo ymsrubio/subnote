@@ -28,7 +28,7 @@ for file in "${files[@]}"; do
 done
 
 tree="$(git mktree <"$entries")"
-commit="$(git commit-tree "$tree" "${parent[@]}" -m "chore: verification evidence for $branch")"
+commit="$(git commit-tree "$tree" ${parent[@]+"${parent[@]}"} -m "chore: verification evidence for $branch")"
 git push -q origin "$commit:refs/heads/$assets"
 rm -f "$entries"
 
