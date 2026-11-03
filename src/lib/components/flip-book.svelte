@@ -18,6 +18,17 @@
 	import SectionTab from './section-tab.svelte';
 	import { atRest, stepSpring, type SpringState } from '$lib/flip-book/spring';
 	import {
+		inMotion,
+		land,
+		move,
+		press,
+		release,
+		resting,
+		retarget,
+		type Gesture
+	} from '$lib/flip-book/gesture';
+	import { STRIPS, stripShade, stripTurns } from '$lib/flip-book/curl';
+	import {
 		clampSpread,
 		leafCount,
 		leafTurn,
@@ -47,14 +58,14 @@
 	const last = $derived(spreadCount(pages.length) - 1);
 	const leaves = $derived(leafCount(pages.length));
 
-	/** The spring's state. `anchor` is the spread the book last rested on. */
-	const start = untrack(() => clampSpread(spread, pages.length));
-	let pos = $state(start);
-	let anchor = $state(start);
-	let speed = $state(0);
-	let target = $state(start);
+	/** The gesture's state: where the spring has the book, and the press on it, if any. */
+	let g = $state.raw<Gesture>(resting(untrack(() => clampSpread(spread, pages.length))));
 	let frame = 0;
-	const flight = $derived({ pos, anchor, speed });
+	const flight = $derived({ pos: g.pos, anchor: g.anchor, speed: g.speed });
+	const pos = $derived(g.pos);
+	const dragging = $derived(g.press?.dragging ?? false);
+	/** Which way the turning page's outer edge leads: +1 turning forward, -1 turning back. It eases when a turn reverses. */
+	let lean = $state(1);
 
 	$effect(() => {
 		const clamped = clampSpread(spread, pages.length);
@@ -63,47 +74,131 @@
 	});
 	$effect(() => () => cancelAnimationFrame(frame));
 
+	function stopSpring() {
+		cancelAnimationFrame(frame);
+		frame = 0;
+	}
+
 	/**
 	 * Turn to `to`. Every turn, one page or a riffle, runs on the same spring: a new target while it is
 	 * moving just retargets it, keeping its position and velocity.
 	 */
 	function go(to: number) {
-		target = to;
+		if (!frame && g.pos === g.anchor) lean = to >= g.pos ? 1 : -1;
+		g = retarget(g, to);
+		if (g.press?.dragging) return;
 		if (reducedMotion.current) {
-			cancelAnimationFrame(frame);
-			frame = 0;
-			land();
-		} else if (!frame && (to !== pos || speed !== 0)) {
-			let spring: SpringState = { x: pos, v: speed };
+			stopSpring();
+			g = land(g);
+		} else if (!frame && inMotion(g)) {
+			let spring: SpringState = { x: g.pos, v: g.speed };
 			let before = performance.now();
 			const tick = (now: number) => {
-				spring = stepSpring(spring, target, Math.min((now - before) / 1000, 1 / 30));
+				const dt = Math.min((now - before) / 1000, 1 / 30);
+				spring = stepSpring(spring, g.target, dt);
 				before = now;
-				if (atRest(spring, target)) {
+				if (g.target !== spring.x) {
+					lean += (Math.sign(g.target - spring.x) - lean) * Math.min(1, dt * 12);
+				}
+				if (atRest(spring, g.target)) {
 					frame = 0;
-					land();
+					g = land(g);
 					return;
 				}
-				pos = spring.x;
-				speed = spring.v;
+				g = { ...g, pos: spring.x, speed: spring.v };
 				frame = requestAnimationFrame(tick);
 			};
 			frame = requestAnimationFrame(tick);
 		}
 	}
 
-	function land() {
-		pos = anchor = target;
-		speed = 0;
+	/**
+	 * A press on a page. Once the pointer has moved far enough it is a drag: the page follows the pointer,
+	 * and on release the same spring takes it from where it was let go, with the pointer's velocity.
+	 */
+	let swallowClick = false;
+
+	function onpointerdown(event: PointerEvent) {
+		const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		const held = g.press;
+		g = press(g, {
+			id: event.pointerId,
+			x: event.clientX,
+			y: event.clientY,
+			button: event.button,
+			primary: event.isPrimary,
+			fraction: (event.clientX - box.left) / box.width,
+			lastSpread: last
+		});
+		if (g.press?.resume) stopSpring();
+		else if (held?.resume && !g.press) go(g.target);
+	}
+
+	function onpointermove(event: PointerEvent) {
+		const had = g.press;
+		const was = had?.dragging;
+		g = move(g, {
+			id: event.pointerId,
+			x: event.clientX,
+			y: event.clientY,
+			buttonUp: event.pointerType === 'mouse' && event.buttons === 0,
+			now: performance.now(),
+			pageWidth: width,
+			reducedMotion: reducedMotion.current
+		});
+		if (had && !g.press) go(g.target);
+		if (g.press?.dragging && !was) {
+			stopSpring();
+			lean = g.press.dir;
+			(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+		}
+	}
+
+	function onpointerup(event: PointerEvent, cancelled = false) {
+		const was = g.press;
+		if (!was || event.pointerId !== was.id) return;
+		g = release(g, {
+			id: event.pointerId,
+			cancelled,
+			now: performance.now(),
+			pageWidth: width,
+			reducedMotion: reducedMotion.current
+		});
+		if (!was.dragging) {
+			go(g.target);
+			return;
+		}
+		swallowClick = true;
+		setTimeout(() => (swallowClick = false), 100);
+		spread = g.target;
+		go(g.target);
+	}
+
+	/**
+	 * Capturing the pointer on the book at drag start releases the pressed button's own implicit capture,
+	 * which fires this event with the drag still live. While the pointer is down, hold on to it.
+	 */
+	function onlostpointercapture(event: PointerEvent) {
+		if (g.press?.dragging && event.buttons !== 0 && event.pointerId === g.press.id) {
+			(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+		} else onpointerup(event, true);
+	}
+
+	function onclickcapture(event: MouseEvent) {
+		if (!swallowClick) return;
+		swallowClick = false;
+		event.stopPropagation();
+		event.preventDefault();
 	}
 
 	/** Holding a key turns on with the spring, never queueing turns ahead of it. */
 	function turnBy(step: number, held = false) {
-		if (held && Math.abs(target - pos) >= 1.5) return;
-		spread = clampSpread(target + step, pages.length);
+		if (held && Math.abs(g.target - pos) >= 1.5) return;
+		spread = clampSpread(g.target + step, pages.length);
 	}
 
 	function onkeydown(event: KeyboardEvent) {
+		if (dragging) return;
 		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
 		if (event.key === 'ArrowRight') turnBy(1, event.repeat);
 		else if (event.key === 'ArrowLeft') turnBy(-1, event.repeat);
@@ -193,17 +288,91 @@
 	{/if}
 {/snippet}
 
+{#snippet cut(index: number, side: 'left' | 'right', offset: number, shade: string)}
+	<!-- Each strip shows the whole page, its width fixed from the page's, slid so only the strip's part is in view. -->
+	<div class="sn-flip__cut" style:left="{1 - offset}px">{@render paper(index, side)}</div>
+	<span class="sn-flip__shade" style:background={shade}></span>
+{/snippet}
+
+{#snippet bend(j: number, turns: number[], i: number)}
+	{@const strip = width / STRIPS}
+	{@const here = turns[i]}
+	{@const before = i === 0 ? 0 : turns[i - 1]}
+	{@const after = turns[i + 1] ?? 2 * here - (turns[i - 1] ?? here)}
+	{@const a = stripShade(here)}
+	{@const b = stripShade(after)}
+	<div
+		class="sn-flip__bend"
+		style:width="{strip}px"
+		style:left={i === 0 ? 0 : '100%'}
+		style:transform="rotateY({-(here - before) * 180}deg)"
+	>
+		<!-- A strip shows one face at a time: the front until it has turned past edge-on. -->
+		{#if here < 0.5}
+			<div class="sn-flip__slice">
+				{@render cut(
+					2 * j,
+					'right',
+					i * strip,
+					`linear-gradient(90deg, rgba(40,26,10,${a.front}), rgba(40,26,10,${b.front}))`
+				)}
+			</div>
+		{:else}
+			<div class="sn-flip__slice sn-flip__slice--back">
+				{@render cut(
+					2 * j + 1,
+					'left',
+					width - (i + 1) * strip,
+					`linear-gradient(90deg, rgba(40,26,10,${b.back}), rgba(40,26,10,${a.back}))`
+				)}
+			</div>
+		{/if}
+		{#if i === STRIPS - 1}
+			{@render flyingTab(j, a)}
+		{:else}
+			{@render bend(j, turns, i + 1)}
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet flyingTab(leaf: number, shade: { front: number; back: number })}
+	{@const entry = tabOf(2 * leaf) ?? tabOf(2 * leaf + 1)}
+	{#if entry}
+		<span
+			class="sn-flip__tab sn-flip__flying"
+			style:top="{entry.top}px"
+			style:--tab-height="{entry.height}px"
+		>
+			<span class="sn-flip__flying-face">
+				<SectionTab colour={entry.section.colour} name={entry.section.name} side="right" />
+				<span class="sn-flip__shade" style:opacity={shade.front}></span>
+			</span>
+			<span class="sn-flip__flying-face sn-flip__flying-face--back">
+				<SectionTab colour={entry.section.colour} name={entry.section.name} side="left" />
+				<span class="sn-flip__shade" style:opacity={shade.back}></span>
+			</span>
+		</span>
+	{/if}
+{/snippet}
+
 {#if mounted}
 	<!-- The book takes the arrow keys only while it has focus, so it never steals them from other widgets. -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 	<div
 		class="sn-flip"
 		class:sn-flip--strips={!wide.current}
+		class:sn-flip--dragging={dragging}
 		role="group"
 		aria-roledescription="book"
-		aria-label="Notebook: use the left and right arrow keys to turn the pages"
+		aria-label="Notebook: use the left and right arrow keys to turn the pages. Drag a page to turn it."
 		tabindex="0"
 		{onkeydown}
+		{onpointerdown}
+		{onpointermove}
+		{onpointerup}
+		onpointercancel={(event) => onpointerup(event, true)}
+		{onlostpointercapture}
+		{onclickcapture}
 		style:width="{width * 2}px"
 		style:height="{height}px"
 		style:perspective="{width * 5}px"
@@ -212,25 +381,40 @@
 			{@const t = leafTurn(j, flight)}
 			{@const full = flat.includes(j)}
 			{@const shade = Math.sin(t * Math.PI) * 0.3}
-			<div
-				class="sn-flip__leaf"
-				style:left="{width}px"
-				style:width="{width}px"
-				style:height="{height}px"
-				style:transform="rotateY({-t * 180}deg)"
-				style:z-index={t === 1 ? j + 1 : t === 0 ? leaves - j + 1 : leaves * 2 + 5}
-			>
-				<div class="sn-flip__face" inert={t >= 0.5}>
-					{#if full}{@render paper(2 * j, 'right')}{/if}
-					<span class="sn-flip__shade" style:opacity={shade}></span>
-					{@render tab(j, 'right')}
+			{#if t > 0 && t < 1}
+				<!-- A page in the air is cut into strips so it can curl. Its copy for each strip is hidden from assistive tech. -->
+				<div
+					class="sn-flip__leaf"
+					style:left="{width}px"
+					style:width="{width}px"
+					style:height="{height}px"
+					style:z-index={leaves * 2 + 5}
+					aria-hidden="true"
+					inert
+				>
+					{@render bend(j, stripTurns(t, lean), 0)}
 				</div>
-				<div class="sn-flip__face sn-flip__face--back" inert={t < 0.5}>
-					{#if full}{@render paper(2 * j + 1, 'left')}{/if}
-					<span class="sn-flip__shade" style:opacity={shade}></span>
-					{@render tab(j, 'left')}
+			{:else}
+				<div
+					class="sn-flip__leaf"
+					style:left="{width}px"
+					style:width="{width}px"
+					style:height="{height}px"
+					style:transform="rotateY({-t * 180}deg)"
+					style:z-index={t === 1 ? j + 1 : t === 0 ? leaves - j + 1 : leaves * 2 + 5}
+				>
+					<div class="sn-flip__face" inert={t >= 0.5}>
+						{#if full}{@render paper(2 * j, 'right')}{/if}
+						<span class="sn-flip__shade" style:opacity={shade}></span>
+						{@render tab(j, 'right')}
+					</div>
+					<div class="sn-flip__face sn-flip__face--back" inert={t < 0.5}>
+						{#if full}{@render paper(2 * j + 1, 'left')}{/if}
+						<span class="sn-flip__shade" style:opacity={shade}></span>
+						{@render tab(j, 'left')}
+					</div>
 				</div>
-			</div>
+			{/if}
 		{/each}
 
 		<button
@@ -238,7 +422,7 @@
 			class="sn-flip__zone sn-flip__zone--left"
 			style:width="{zone}px"
 			aria-label="Previous pages"
-			aria-disabled={target <= 0}
+			aria-disabled={g.target <= 0}
 			onclick={() => turnBy(-1)}
 		></button>
 		<button
@@ -246,7 +430,7 @@
 			class="sn-flip__zone sn-flip__zone--right"
 			style:width="{zone}px"
 			aria-label="Next pages"
-			aria-disabled={target >= last}
+			aria-disabled={g.target >= last}
 			onclick={() => turnBy(1)}
 		></button>
 	</div>
@@ -259,6 +443,54 @@
 		isolation: isolate;
 		margin-inline: auto;
 		flex: none;
+		/* A horizontal drag turns the page; a vertical one still scrolls the screen. */
+		touch-action: pan-y;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
+	.sn-flip--dragging {
+		cursor: grabbing;
+	}
+	/* One strip of a page in the air, hinged on the one before it. Its width is the strip's; it shows a slice of a full-width page. */
+	.sn-flip__bend {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		transform-origin: left center;
+		transform-style: preserve-3d;
+	}
+	/* Slices run 1px past the strip on each side so no seam shows where strips meet. */
+	.sn-flip__slice {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: -1px;
+		right: -1px;
+		overflow: hidden;
+		backface-visibility: hidden;
+	}
+	.sn-flip__slice--back {
+		transform: rotateY(180deg);
+	}
+	.sn-flip__cut {
+		position: absolute;
+		top: 0;
+	}
+	/* A tab riding a turning Title Page: two-sided, on the last strip's outer edge. */
+	.sn-flip__flying {
+		left: 100%;
+		transform-style: preserve-3d;
+	}
+	.sn-flip__flying-face {
+		display: block;
+		position: relative;
+		backface-visibility: hidden;
+	}
+	.sn-flip__flying-face--back {
+		position: absolute;
+		inset: 0;
+		transform: rotateY(180deg);
 	}
 	.sn-flip__leaf {
 		position: absolute;
