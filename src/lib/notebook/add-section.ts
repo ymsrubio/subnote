@@ -18,9 +18,18 @@ export type AddSectionSave =
 
 function sameOutcome(a: PlacementOutcome, b: PlacementOutcome) {
 	if (a.kind === 'placed' && b.kind === 'placed') {
-		return a.section.first === b.section.first && a.section.last === b.section.last;
+		const [x, y] = [a.section, b.section];
+		return (
+			x.first === y.first &&
+			x.last === y.last &&
+			x.titlePage === y.titlePage &&
+			x.colour === y.colour
+		);
 	}
-	return a.kind === 'pending' && b.kind === 'pending';
+	if (a.kind === 'pending' && b.kind === 'pending') {
+		return a.pending.reason === b.pending.reason && a.pending.colour === b.pending.colour;
+	}
+	return false;
 }
 
 /**

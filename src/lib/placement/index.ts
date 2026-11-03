@@ -74,6 +74,7 @@ function validate(pageCount: number, taken: string[], request: SectionRequest): 
 function reasonFor(size: number, free: number, fragmented: boolean): string {
 	const needs = `needs ${size} pages in one aligned block`;
 	if (fragmented) return `${needs}, and the ${free} Free Pages left are split up`;
+	if (free === 0) return `${needs}, and no Free Pages are left`;
 	return `${needs}, and only ${free} Free ${free === 1 ? 'Page is' : 'Pages are'} left`;
 }
 

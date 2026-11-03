@@ -46,7 +46,8 @@ export function noticeOf(outcome: PlacementOutcome) {
 	const { name, colour, reason } = outcome.pending;
 	const past = reason
 		.replace(/ Page is left$/, ' Page was left')
-		.replace(/ Pages are left$/, ' Pages were left');
+		.replace(/ Pages are left$/, ' Pages were left')
+		.replace(/ no Free Pages are left$/, ' no Free Pages were left');
 	return { name, colour, text: `didn't fit: it ${past}. It'll wait for your next Notebook.` };
 }
 
@@ -96,4 +97,20 @@ export function rowsInPageOrder(notebook: Notebook): NotebookRow[] {
 	}));
 	const free: NotebookRow[] = freeRanges(notebook).map((r) => ({ kind: 'free', ...r }));
 	return [...placed, ...free].sort((a, b) => a.first - b.first);
+}
+
+const pagesOf = (n: number) => `${n} ${n === 1 ? 'page' : 'pages'}`;
+
+/** The note under a row's name on the Notebook screen: its size, or what a Pending Section asked for. */
+export function rowMeta(
+	row:
+		| { kind: 'placed'; size: number }
+		| { kind: 'free'; first: number; last: number }
+		| { kind: 'pending'; requested: number; size: number }
+): string {
+	if (row.kind === 'placed') return pagesOf(row.size);
+	if (row.kind === 'free') return pagesOf(row.last - row.first + 1);
+	return row.requested === row.size
+		? pagesOf(row.size)
+		: `asked for ${row.requested} · rounded to ${row.size}`;
 }

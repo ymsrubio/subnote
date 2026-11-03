@@ -84,18 +84,31 @@ describe('saveAddSection', () => {
 		expect(after?.notebook.pending.map((p) => p.name)).toEqual(['Reading log']);
 	});
 
-	it('keeps a Section another tab added instead of undoing it', async () => {
+	it('does not write when another tab changes the colour the preview showed', async () => {
+		const store = await seeded();
+		const preview = await shown(store, 'Travel', 3);
+		expect(preview).toMatchObject({ kind: 'placed', section: { first: 117, colour: 'teal' } });
+		await otherTabAdds(store, 'Garden', 16);
+		const result = await saveAddSection(store, 'a', { name: 'Travel', pages: 3 }, preview);
+		expect(result.status).toBe('changed');
+		const after = await store.get('a');
+		expect(after?.notebook.sections.map((s) => s.name)).toEqual([
+			'Journal',
+			'Habit tracker',
+			'Idea capture',
+			'Calendar'
+		]);
+		expect(after?.notebook.pending.map((p) => p.name)).toEqual(['Reading log', 'Garden']);
+	});
+
+	it('keeps a Section another tab added, and refuses a Pending add whose colour moved on', async () => {
 		const store = await seeded();
 		const preview = await shown(store, 'Recipes', 6);
 		await otherTabAdds(store, 'Garden', 16);
 		const result = await saveAddSection(store, 'a', { name: 'Recipes', pages: 6 }, preview);
-		expect(result.status).toBe('saved');
+		expect(result.status).toBe('changed');
 		const after = await store.get('a');
-		expect(after?.notebook.pending.map((p) => p.name)).toEqual([
-			'Reading log',
-			'Garden',
-			'Recipes'
-		]);
+		expect(after?.notebook.pending.map((p) => p.name)).toEqual(['Reading log', 'Garden']);
 	});
 
 	it('rejects a name another tab took, writing nothing', async () => {

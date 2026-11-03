@@ -22,7 +22,7 @@
 
 	let name = $state('');
 	let pages = $state('');
-	let errors = $state<{ name?: string; pages?: string }>({});
+	let tried = $state(false);
 	let failure = $state('');
 	let saving = $state(false);
 	let nameInput = $state<HTMLInputElement | null>(null);
@@ -31,6 +31,10 @@
 	const notebook = $derived(saved.notebook);
 	const taken = $derived([...notebook.sections, ...notebook.pending].map((s) => s.name));
 	const parsed = $derived(parseSectionForm({ name, pages }, notebook.pageCount, taken));
+	/** Once a submit has been tried, the errors follow the fields as they are fixed. */
+	const errors = $derived<{ name?: string; pages?: string }>(
+		tried && !parsed.ok ? parsed.errors : {}
+	);
 	/** Null until a name and a page count are both valid. */
 	const outcome = $derived(parsed.ok ? previewAddSection(notebook, parsed.request) : null);
 	const preview = $derived(outcome ? previewOf(outcome, saved.name) : null);
@@ -39,18 +43,17 @@
 		if (open) return;
 		name = '';
 		pages = '';
-		errors = {};
+		tried = false;
 		failure = '';
 	});
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
+		tried = true;
 		if (!parsed.ok || !outcome) {
-			errors = parsed.ok ? {} : parsed.errors;
-			(errors.name ? nameInput : pagesInput)?.focus();
+			(!parsed.ok && parsed.errors.name ? nameInput : pagesInput)?.focus();
 			return;
 		}
-		errors = {};
 		failure = '';
 		saving = true;
 		try {
@@ -103,20 +106,21 @@
 			{/if}
 			<InputHelp id="add-section-pages-help">{roundsUpHelp(pages, notebook.pageCount)}</InputHelp>
 
-			{#if preview?.kind === 'fits'}
-				<div
-					class="sn-sec--{preview.colour} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-lg bg-card p-4 shadow-(--shadow-slip)"
-					role="status"
-				>
-					<span><span class="sn-slip">{preview.name}</span></span>
-					<span class="tabular-nums type-label">{preview.range}</span>
-					<InputHelp class="col-span-2">{preview.instruction}</InputHelp>
-				</div>
-			{:else if preview?.kind === 'pending'}
-				<div class="rounded-lg bg-card p-4 shadow-(--shadow-slip)" role="status">
-					<p><strong>{preview.title}</strong> {preview.detail}</p>
-				</div>
-			{/if}
+			<div role="status" class={preview ? '' : '-mt-4'}>
+				{#if preview?.kind === 'fits'}
+					<div
+						class="sn-sec--{preview.colour} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-lg bg-card p-4 shadow-(--shadow-slip)"
+					>
+						<span><span class="sn-slip">{preview.name}</span></span>
+						<span class="tabular-nums type-label">{preview.range}</span>
+						<InputHelp class="col-span-2">{preview.instruction}</InputHelp>
+					</div>
+				{:else if preview?.kind === 'pending'}
+					<div class="rounded-lg bg-card p-4 shadow-(--shadow-slip)">
+						<p><strong>{preview.title}</strong> {preview.detail}</p>
+					</div>
+				{/if}
+			</div>
 
 			{#if failure}
 				<InputHelp error role="alert">{failure}</InputHelp>

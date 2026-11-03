@@ -13,7 +13,7 @@
 	import StorageBlocked from '$lib/components/storage-blocked.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { saveAddSection } from '$lib/notebook/add-section';
-	import { noticeOf, rowsInPageOrder, summaryLine } from '$lib/notebook/notebook-text';
+	import { noticeOf, rowMeta, rowsInPageOrder, summaryLine } from '$lib/notebook/notebook-text';
 	import { freePages, type PlacementOutcome, type SectionRequest } from '$lib/placement';
 	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
@@ -98,15 +98,20 @@
 	{/snippet}
 
 	{#snippet noticeCard()}
-		{#if notice}
-			<div
-				class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg bg-card py-3 pr-2 pl-4 text-card-foreground shadow-(--shadow-slip)"
-				role="status"
-			>
-				<p>
-					<span class="sn-slip sn-sec--{notice.colour}">{notice.name}</span>
-					{notice.text}
-				</p>
+		<div
+			class={notice
+				? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg bg-card py-3 pr-2 pl-4 text-card-foreground shadow-(--shadow-slip)'
+				: '-mt-4'}
+		>
+			<div role="status">
+				{#if notice}
+					<p>
+						<span class="sn-slip sn-sec--{notice.colour}">{notice.name}</span>
+						{notice.text}
+					</p>
+				{/if}
+			</div>
+			{#if notice}
 				<Button
 					variant="ghost"
 					size="icon"
@@ -114,8 +119,8 @@
 					aria-label="Dismiss"
 					onclick={() => (notice = null)}><X /></Button
 				>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	{/snippet}
 
 	{#snippet lists()}
@@ -132,9 +137,10 @@
 							last={row.last}
 							asked={row.requested}
 							size={row.size}
+							meta={rowMeta(row)}
 						/>
 					{:else}
-						<SectionRow kind="free" first={row.first} last={row.last} />
+						<SectionRow kind="free" first={row.first} last={row.last} meta={rowMeta(row)} />
 					{/if}
 				{/each}
 			</ul>
@@ -152,10 +158,11 @@
 							name={pending.name}
 							asked={pending.requested}
 							size={pending.size}
+							meta={rowMeta({ kind: 'pending', ...pending })}
 						/>
 					{/each}
 				</ul>
-				<p class="px-1 type-caption text-cover-muted-foreground">
+				<p class="px-1 type-caption text-cover-muted-foreground md:hidden">
 					Pending Sections wait for your next Notebook's Setup.
 				</p>
 			</section>

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { addSection, previewAddSection, setupNotebook } from '../placement';
-import { freeSummary, noticeOf, previewOf, rowsInPageOrder, summaryLine } from './notebook-text';
+import {
+	freeSummary,
+	noticeOf,
+	previewOf,
+	rowMeta,
+	rowsInPageOrder,
+	summaryLine
+} from './notebook-text';
 
 describe('summaryLine', () => {
 	it('counts pages, Sections and Free Pages', () => {
@@ -76,6 +83,14 @@ describe('noticeOf', () => {
 		);
 	});
 
+	it('says "no Free Pages were left" when the Notebook was full', () => {
+		const full = setupNotebook(4, [{ name: 'A', pages: 4 }]);
+		const { outcome } = addSection(full, { name: 'B', pages: 2 });
+		expect(noticeOf(outcome)?.text).toBe(
+			"didn't fit: it needs 2 pages in one aligned block, and no Free Pages were left. It'll wait for your next Notebook."
+		);
+	});
+
 	it('is null when the Section was placed', () => {
 		expect(noticeOf(addSection(spring(), { name: 'Travel', pages: 3 }).outcome)).toBeNull();
 	});
@@ -112,5 +127,20 @@ describe('rowsInPageOrder', () => {
 			'Calendar 113-116',
 			'free 117-120'
 		]);
+	});
+});
+
+describe('rowMeta', () => {
+	it('gives the size of a Section and of a run of Free Pages', () => {
+		expect(rowMeta({ kind: 'placed', size: 32 })).toBe('32 pages');
+		expect(rowMeta({ kind: 'free', first: 117, last: 120 })).toBe('4 pages');
+		expect(rowMeta({ kind: 'free', first: 9, last: 9 })).toBe('1 page');
+	});
+
+	it('shows what a Pending Section asked for and what it rounded to', () => {
+		expect(rowMeta({ kind: 'pending', requested: 12, size: 16 })).toBe(
+			'asked for 12 · rounded to 16'
+		);
+		expect(rowMeta({ kind: 'pending', requested: 16, size: 16 })).toBe('16 pages');
 	});
 });
