@@ -120,6 +120,7 @@
 
 	function onpointerdown(event: PointerEvent) {
 		const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		const held = g.press;
 		g = press(g, {
 			id: event.pointerId,
 			x: event.clientX,
@@ -129,10 +130,13 @@
 			fraction: (event.clientX - box.left) / box.width,
 			lastSpread: last
 		});
+		if (g.press?.resume) stopSpring();
+		else if (held?.resume && !g.press) go(g.target);
 	}
 
 	function onpointermove(event: PointerEvent) {
-		const was = g.press?.dragging;
+		const had = g.press;
+		const was = had?.dragging;
 		g = move(g, {
 			id: event.pointerId,
 			x: event.clientX,
@@ -142,6 +146,7 @@
 			pageWidth: width,
 			reducedMotion: reducedMotion.current
 		});
+		if (had && !g.press) go(g.target);
 		if (g.press?.dragging && !was) {
 			stopSpring();
 			lean = g.press.dir;
@@ -159,7 +164,10 @@
 			pageWidth: width,
 			reducedMotion: reducedMotion.current
 		});
-		if (!was.dragging) return;
+		if (!was.dragging) {
+			go(g.target);
+			return;
+		}
 		swallowClick = true;
 		setTimeout(() => (swallowClick = false), 100);
 		spread = g.target;

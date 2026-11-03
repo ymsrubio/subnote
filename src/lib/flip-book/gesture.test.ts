@@ -17,6 +17,7 @@ describe('press', () => {
 			dir: 1,
 			origin: 2,
 			grabbed: 0,
+			resume: null,
 			dx: 0,
 			dragging: false,
 			samples: []
@@ -153,6 +154,62 @@ describe('grabbing a page in flight', () => {
 	it('grabs a page turning back', () => {
 		const back: Gesture = { pos: 2.5, anchor: 3, speed: -3, target: 2, press: null };
 		expect(press(back, down).press).toMatchObject({ dir: -1, origin: 3, grabbed: 0.5 });
+	});
+
+	it('freezes the leaf at pointer-down so a move continues from where it was grabbed', () => {
+		let g = press(flying, down);
+		expect(g).toEqual({
+			pos: 2.5,
+			anchor: 2,
+			speed: 0,
+			target: 2.5,
+			press: {
+				id: 1,
+				x: 300,
+				y: 100,
+				dir: 1,
+				origin: 2,
+				grabbed: 0.5,
+				resume: { target: 3, speed: 3 },
+				dx: 0,
+				dragging: false,
+				samples: []
+			}
+		});
+		g = step(g, 292, 0);
+		expect(g.pos).toBe(2.5 + 8 / 170);
+		expect(g.anchor).toBe(2);
+	});
+
+	it('drags from the grabbed anchor after a long hold and does not undo the turn on release', () => {
+		let g = press(flying, down);
+		g = step(g, 280, 400);
+		g = step(g, 100, 420);
+		g = step(g, 100, 900);
+		g = lift(g, 1000);
+		expect(g).toEqual({ pos: 3, anchor: 3, speed: 0, target: 3, press: null });
+	});
+
+	it('hands a held press that never drags back to the spring with its old target and speed', () => {
+		const g = lift(press(flying, down), 1000);
+		expect(g).toEqual({ pos: 2.5, anchor: 2, speed: 3, target: 3, press: null });
+		expect(lift(press(flying, down), 1000, true)).toEqual(g);
+		const vertical = move(press(flying, down), {
+			id: 1,
+			x: 300,
+			y: 140,
+			buttonUp: false,
+			now: 10,
+			pageWidth: W,
+			reducedMotion: false
+		});
+		expect(vertical).toEqual(g);
+	});
+
+	it('keeps a frozen leaf frozen when the target changes under the press', () => {
+		const g = retarget(press(flying, down), 4);
+		expect(g).toMatchObject({ pos: 2.5, speed: 0, target: 2.5 });
+		expect(lift(g, 1000)).toEqual({ pos: 2.5, anchor: 2, speed: 3, target: 4, press: null });
 	});
 
 	it('does not grab a riffle', () => {
