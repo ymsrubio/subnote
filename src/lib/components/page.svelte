@@ -82,7 +82,7 @@
 		background-color: var(--paper);
 		background-image: radial-gradient(
 			circle,
-			var(--dot) calc(0.8.16px * var(--k)),
+			var(--dot) calc(0.9px * var(--k)),
 			transparent calc(1.1px * var(--k))
 		);
 		background-size: calc(17px * var(--k)) calc(17px * var(--k));

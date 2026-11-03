@@ -28,7 +28,8 @@ const probe = `(() => {
 			numberBox: (() => { const p = el.getBoundingClientRect(), n = number.getBoundingClientRect(); return { fromLeft: n.left - p.left, fromRight: p.right - n.right }; })(),
 			bandWidth: band && parseFloat(rgb(band, 'width')),
 			bandSide: band && (band.getBoundingClientRect().left - el.getBoundingClientRect().left < 1 ? 'left' : 'right'),
-			free: !!q('.sn-page__free')
+			free: !!q('.sn-page__free'),
+			dots: getComputedStyle(el).backgroundImage.includes('radial-gradient')
 		};
 	};
 	const all = pages.map(info);
@@ -67,6 +68,7 @@ for (const scheme of ['light', 'dark']) {
 	check(leftBand?.bandSide === 'left', `${scheme}: left page band on the left`);
 	check(leftBand && leftBand.numberBox.fromLeft < leftBand.numberBox.fromRight, `${scheme}: left page number in the left corner`);
 	check(inSection && inSection.numberBox.fromRight < inSection.numberBox.fromLeft, `${scheme}: right page number in the right corner`);
+	check(data.all.every((p) => p.dots), `${scheme}: every Page has its dot grid`);
 	const free = data.all.find((p) => p.free);
 	check(free && free.bandWidth === null && !free.name, `${scheme}: Free Page has no band and no name`);
 	check(data.clip.pageWidth === 158 && data.clip.container === 60, `${scheme}: clipped page keeps 158px in a 60px container`);
