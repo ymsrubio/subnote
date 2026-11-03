@@ -5,7 +5,7 @@ description: Launch and drive Subnote's SvelteKit web app (home page and the /sh
 
 # Verify Subnote
 
-Subnote is a static SvelteKit app (`adapter-static`, no backend, no auth, no database). The surface is the browser. Today it has two routes: `/` (home) and `/showcase` (every design-system example). Read `features/README.md` for the feature map, then drive the features your change touches.
+Subnote is a static SvelteKit app (`adapter-static`, no backend, no auth, no database). The surface is the browser. Its routes are `/` (first visit, or a redirect to the saved Notebook), `/notebooks/<id>/setup` and `/showcase` (every design-system example). Read `features/README.md` for the feature map, then drive the features your change touches.
 
 Scripts live in `.claude/skills/verify/scripts/`. Run them from the checkout you are verifying (the main checkout or a worktree). Paths below are relative to the repo root.
 
