@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newestConfirmed, waitingSections } from '../notebook-list';
-import { setupNotebook } from '../placement';
+import { setupNotebook, setupNotebookKeepingTooBig } from '../placement';
 import { parseSavedNotebook, type SavedNotebook } from '../storage';
 import { createLocalNotebookStore } from '../storage/local-notebook-store';
 import { carriedMark, nextSavedNotebook, prefillFrom, prefillNote } from './next-notebook';
@@ -55,10 +55,11 @@ describe('prefillFrom', () => {
 		});
 	});
 
-	it('leaves out a Section that asks for more pages than the new Notebook has', () => {
+	it('names a Section that asks for more pages than the new Notebook has, and still requests it', () => {
 		const { requests, carried } = prefillFrom(spring, 32);
 		expect(requests.map((r) => r.name)).toEqual([
 			'Reading log',
+			'Journal',
 			'Habit tracker',
 			'Idea capture',
 			'Calendar'
@@ -116,10 +117,10 @@ describe('prefillNote', () => {
 		);
 	});
 
-	it('names what was left out for being too big', () => {
+	it('names what stays Pending for being too big', () => {
 		const note = prefillNote(nextSavedNotebook('s', 'Small', 32, spring));
 		expect(note).toBe(
-			"Prefilled from Spring notebook: its 3 Sections, plus the 1 Pending Section that waited for this Notebook. Remove any you don't need. Journal asks for more pages than this Notebook has, so it was left out."
+			"Prefilled from Spring notebook: its 3 Sections, plus the 1 Pending Section that waited for this Notebook. Remove any you don't need. Journal asks for more pages than this Notebook has, so it stays Pending."
 		);
 	});
 
@@ -212,5 +213,41 @@ describe('parseSavedNotebook with carried', () => {
 		).toEqual({ ok: false });
 		expect(withCarried({ from: 'A', sections: [] })).toEqual({ ok: false });
 		expect(withCarried('Spring')).toEqual({ ok: false });
+	});
+});
+
+describe('a Section too big for the next Notebook', () => {
+	const previous: SavedNotebook = {
+		id: 'p',
+		name: 'Big',
+		setupConfirmed: true,
+		notebook: setupNotebook(64, [
+			{ name: 'Journal 1', pages: 64 },
+			{ name: 'Journal 2', pages: 64 }
+		])
+	};
+
+	it('stays Pending through an edit and Confirm, and waits for the Notebook after', async () => {
+		const storage = fakeStorage();
+		const store = createLocalNotebookStore(() => storage);
+		await store.save(previous);
+		await store.save(nextSavedNotebook('next', 'Small', 32, previous));
+		await saveSetupEdit(store, 'next', (notebook) =>
+			setupNotebookKeepingTooBig(notebook.pageCount, [
+				...requestsOf(notebook),
+				{ name: 'Notes', pages: 8 }
+			])
+		);
+		await confirmStoredSetup(store, 'next');
+		const confirmed = (await store.get('next'))!;
+		expect(confirmed.notebook.sections.map((s) => [s.name, s.size])).toEqual([['Notes', 8]]);
+		expect(confirmed.notebook.pending.map((p) => [p.name, p.requested, p.reason])).toEqual([
+			['Journal 2', 64, 'asks for 64 pages, and this Notebook has 32'],
+			['Journal 1', 64, 'asks for 64 pages, and this Notebook has 32']
+		]);
+		expect(waitingSections(await store.list())?.sections.map((s) => s.name)).toEqual([
+			'Journal 2',
+			'Journal 1'
+		]);
 	});
 });

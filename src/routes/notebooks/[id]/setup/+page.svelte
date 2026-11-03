@@ -15,7 +15,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Sheet from '$lib/components/ui/sheet';
-	import { freePages, setupNotebook, type SectionRequest } from '$lib/placement';
+	import { freePages, setupNotebookKeepingTooBig, type SectionRequest } from '$lib/placement';
 	import {
 		confirmBlockedReason,
 		freeRanges,
@@ -85,7 +85,7 @@
 	const editRequests = (edit: (requests: SectionRequest[]) => SectionRequest[]) =>
 		apply(() =>
 			saveSetupEdit(notebookStore, notebookId(), (notebook) =>
-				setupNotebook(notebook.pageCount, edit(requestsOf(notebook)))
+				setupNotebookKeepingTooBig(notebook.pageCount, edit(requestsOf(notebook)))
 			)
 		);
 
@@ -124,6 +124,7 @@
 	{@const { name, notebook } = current}
 	{@const free = freePages(notebook)}
 	{@const reason = confirmBlockedReason(notebook)}
+	{@const note = prefillNote(current)}
 	{@const taken = [...notebook.sections, ...notebook.pending].map((s) => s.name)}
 
 	{#snippet removeButton(sectionName: string)}
@@ -140,10 +141,10 @@
 		<PageGrid {name} pageCount={notebook.pageCount} sections={notebook.sections} />
 	{/snippet}
 
-	{#snippet note()}
-		{#if prefillNote(current)}
+	{#snippet notes()}
+		{#if note}
 			<p class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
-				{prefillNote(current)}
+				{note}
 			</p>
 		{/if}
 		{#if notebook.sections.length === 0 && notebook.pending.length === 0}
@@ -248,7 +249,7 @@
 						{name} · {notebook.pageCount} pages
 					</p>
 				</header>
-				{@render note()}
+				{@render notes()}
 				<div class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
 					<AddSectionForm pageCount={notebook.pageCount} {taken} onadd={(r) => addSection(r)} />
 				</div>
@@ -284,7 +285,7 @@
 				{@render grid()}
 			</CoverHeader>
 			<main class="grid gap-4 px-4 pt-4 pb-40">
-				{@render note()}
+				{@render notes()}
 				<Button variant="paper" class="h-11 justify-self-start" onclick={() => (sheetOpen = true)}
 					>Add Section</Button
 				>

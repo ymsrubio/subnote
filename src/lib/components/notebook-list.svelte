@@ -21,6 +21,8 @@
 	const current = $derived(newestFirst.find((saved) => saved.setupConfirmed));
 	const tabs = $derived(current?.notebook.sections.map((s) => s.colour) ?? []);
 
+	const draft = $derived(notebooks.some((saved) => !saved.setupConfirmed));
+
 	let startOpen = $state(false);
 
 	/** Reads the Notebooks again, so a Notebook confirmed in another tab since this list loaded is the one carried over. */
@@ -96,8 +98,14 @@
 				<Button
 					size="lg"
 					class="h-11 md:h-10 md:justify-self-start"
+					disabled={draft}
 					onclick={() => (startOpen = true)}>Start next Notebook</Button
 				>
+				{#if draft}
+					<p class="type-caption text-muted-foreground">
+						Finish Setup on the Notebook that needs it first.
+					</p>
+				{/if}
 			</section>
 
 			<section class="grid gap-2 md:order-1" aria-labelledby="notebooks-heading">

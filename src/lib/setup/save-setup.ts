@@ -10,7 +10,11 @@ export type SetupSave =
 /** Drops the markers of rows an edit removed, so a Section added by hand under the same name is not marked. */
 function withoutRemoved(carried: Carried, notebook: Notebook): Carried {
 	const names = new Set([...notebook.sections, ...notebook.pending].map((s) => s.name));
-	return { ...carried, sections: carried.sections.filter((s) => names.has(s.name)) };
+	return {
+		...carried,
+		sections: carried.sections.filter((s) => names.has(s.name)),
+		tooBig: carried.tooBig.filter((name) => names.has(name))
+	};
 }
 
 /**
