@@ -285,6 +285,19 @@
 		font: var(--text-section-name--font-weight) var(--text-section-name) /
 			var(--text-section-name--line-height) var(--font-hand);
 	}
+	.sn-secrow__open {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+	.sn-secrow__open:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
 	.sn-secrow__mark {
 		display: inline-block;
 		margin-left: var(--space-2);
