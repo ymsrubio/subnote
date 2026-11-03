@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input, InputHelp } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -19,12 +20,15 @@
 	let pages = $state('');
 	let errors = $state<{ name?: string; pages?: string }>({});
 	let nameInput = $state<HTMLInputElement | null>(null);
+	let pagesInput = $state<HTMLInputElement | null>(null);
 
-	function submit(event: SubmitEvent) {
+	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		const result = parseSectionForm({ name, pages }, pageCount, taken);
 		if (!result.ok) {
 			errors = result.errors;
+			await tick();
+			(result.errors.name ? nameInput : pagesInput)?.focus();
 			return;
 		}
 		errors = {};
@@ -53,6 +57,7 @@
 			<Label for="section-pages">Pages wanted</Label>
 			<Input
 				id="section-pages"
+				bind:ref={pagesInput}
 				inputmode="numeric"
 				placeholder="20"
 				autocomplete="off"

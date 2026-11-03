@@ -75,6 +75,36 @@ describe('parseSectionForm', () => {
 	});
 });
 
+describe('Pages wanted input', () => {
+	const sizes =
+		'Sizes round up to 1, 2, 4, 8, 16, 32 or 64 pages. The Title Page counts as one of them.';
+
+	it('rejects anything but digits, including forms Number() accepts', () => {
+		const pagesError = (pages: string) => {
+			const result = parseSectionForm({ name: 'A', pages }, 120, []);
+			return result.ok ? undefined : result.errors.pages;
+		};
+		for (const typed of ['0x10', '1e2', '12.5', '+5', '-5', '1_0', '5 6'])
+			expect(pagesError(typed)).toBe('Pages wanted must be a whole number');
+		expect(pagesError('007')).toBeUndefined();
+	});
+
+	it('lists the sizes, never a hex or exponent count, for non-digit input', () => {
+		expect(roundsUpHelp('0x10', 120)).toBe(sizes);
+		expect(roundsUpHelp('1e2', 120)).toBe(sizes);
+		expect(roundsUpHelp('12.5', 120)).toBe(sizes);
+		expect(roundsUpHelp('1e21', 120)).toBe(sizes);
+	});
+
+	it('shows the too-many-pages message when the count or its rounded size does not fit', () => {
+		expect(roundsUpHelp('121', 120)).toBe('The Notebook only has 120 pages');
+		expect(roundsUpHelp('65', 120)).toBe('The Notebook only has 120 pages');
+		expect(roundsUpHelp('64', 120)).toBe('Rounds up to 64 pages.');
+		expect(roundsUpHelp('99999999999999999999999', 120)).toBe('The Notebook only has 120 pages');
+		expect(roundsUpHelp('2', 1)).toBe('The Notebook only has 1 page');
+	});
+});
+
 describe('Setup views of a Notebook', () => {
 	const notebook = setupNotebook(120, spring);
 

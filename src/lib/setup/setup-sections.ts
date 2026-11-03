@@ -9,6 +9,11 @@ export interface SectionFormInput {
 export type SectionFormResult =
 	{ ok: true; request: SectionRequest } | { ok: false; errors: { name?: string; pages?: string } };
 
+const digitsOnly = /^\d+$/;
+
+const tooManyPages = (pageCount: number) =>
+	`The Notebook only has ${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
+
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /** Checks the add form against the Notebook's page count and the names already taken. Each error is the text to show under its field. */
@@ -26,11 +31,9 @@ export function parseSectionForm(
 		errors.name = `There is already a Section called ${name}`;
 	}
 	if (typed === '') errors.pages = 'Enter how many pages you want';
-	else if (!Number.isInteger(pages)) errors.pages = 'Pages wanted must be a whole number';
+	else if (!digitsOnly.test(typed)) errors.pages = 'Pages wanted must be a whole number';
 	else if (pages < 1) errors.pages = 'Pages wanted must be at least 1';
-	else if (pages > pageCount) {
-		errors.pages = `The Notebook only has ${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
-	}
+	else if (pages > pageCount) errors.pages = tooManyPages(pageCount);
 	if (errors.name || errors.pages) return { ok: false, errors };
 	return { ok: true, request: { name, pages } };
 }
@@ -44,9 +47,12 @@ function sizesFor(pageCount: number): number[] {
 
 /** The help line under "Pages wanted": what a typed count rounds up to, or the sizes available before anything valid is typed. */
 export function roundsUpHelp(typed: string, pageCount: number): string {
-	const pages = Number(typed.trim());
-	if (typed.trim() !== '' && Number.isInteger(pages) && pages >= 1) {
+	const digits = typed.trim();
+	const pages = Number(digits);
+	if (digitsOnly.test(digits) && pages >= 1) {
+		if (pages > pageCount) return tooManyPages(pageCount);
 		const size = sectionSize(pages);
+		if (size > pageCount) return tooManyPages(pageCount);
 		return `Rounds up to ${size} ${size === 1 ? 'page' : 'pages'}.`;
 	}
 	const sizes = sizesFor(pageCount);

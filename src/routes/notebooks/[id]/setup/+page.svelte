@@ -23,6 +23,7 @@
 		requestsOf,
 		titlePages
 	} from '$lib/setup/setup-sections';
+	import { confirmStoredSetup, saveSetupEdit, type SetupSave } from '$lib/setup/save-setup';
 	import { notebookStore, type SavedNotebook } from '$lib/storage';
 
 	let saved = $state<SavedNotebook | 'missing' | 'blocked'>();
@@ -47,41 +48,60 @@
 		}
 	});
 
-	async function keep(next: SavedNotebook) {
+	const notebookId = () => page.params.id ?? '';
+
+	/** Runs a store write that re-reads first. Returns the saved Notebook, or undefined when nothing was saved. */
+	let writes: Promise<unknown> = Promise.resolve();
+
+	function apply(write: () => Promise<SetupSave>) {
+		const run = writes.then(() => applyNow(write));
+		writes = run;
+		return run;
+	}
+
+	async function applyNow(write: () => Promise<SetupSave>) {
 		failure = '';
 		try {
-			await notebookStore.save(next);
-			saved = next;
-			return true;
+			const result = await write();
+			if (result.status === 'locked') {
+				sheetOpen = false;
+				confirmOpen = false;
+				await goto(resolve('/notebooks/[id]', { id: notebookId() }), { replaceState: true });
+				return undefined;
+			}
+			if (result.status === 'missing') {
+				saved = 'missing';
+				return undefined;
+			}
+			saved = result.saved;
+			return result.saved;
 		} catch {
 			failure = 'Subnote could not save this on your device. Check that storage is allowed.';
-			return false;
+			return undefined;
 		}
 	}
 
-	async function replaceRequests(current: SavedNotebook, requests: SectionRequest[]) {
-		const notebook = setupNotebook(current.notebook.pageCount, requests);
-		return keep({ ...current, notebook });
-	}
-
-	async function addSection(current: SavedNotebook, request: SectionRequest) {
-		const kept = await replaceRequests(current, [...requestsOf(current.notebook), request]);
-		if (kept) sheetOpen = false;
-	}
-
-	async function removeSection(current: SavedNotebook, name: string) {
-		await replaceRequests(
-			current,
-			requestsOf(current.notebook).filter((request) => request.name !== name)
+	const editRequests = (edit: (requests: SectionRequest[]) => SectionRequest[]) =>
+		apply(() =>
+			saveSetupEdit(notebookStore, notebookId(), (notebook) =>
+				setupNotebook(notebook.pageCount, edit(requestsOf(notebook)))
+			)
 		);
+
+	async function addSection(request: SectionRequest) {
+		if (await editRequests((requests) => [...requests, request])) sheetOpen = false;
 	}
 
-	async function confirmSetup(current: SavedNotebook) {
+	async function removeSection(name: string) {
+		await editRequests((requests) => requests.filter((request) => request.name !== name));
+	}
+
+	async function confirmSetup() {
 		confirming = true;
 		try {
-			if (!(await keep({ ...current, setupConfirmed: true }))) return;
+			if (!(await apply(() => confirmStoredSetup(notebookStore, notebookId())))) return;
 			confirmOpen = false;
-			await goto(resolve('/notebooks/[id]', { id: current.id }), { replaceState: true });
+			await goto(resolve('/notebooks/[id]', { id: notebookId() }), { replaceState: true });
 		} finally {
 			confirming = false;
 		}
@@ -111,7 +131,7 @@
 			size="icon"
 			class="text-slip-foreground hover:bg-black/10 hover:text-slip-foreground max-md:size-11"
 			aria-label="Remove {sectionName}"
-			onclick={() => removeSection(current, sectionName)}><X /></Button
+			onclick={() => removeSection(sectionName)}><X /></Button
 		>
 	{/snippet}
 
@@ -220,11 +240,7 @@
 				</header>
 				{@render note()}
 				<div class="rounded-lg bg-card p-4 text-card-foreground shadow-(--shadow-slip)">
-					<AddSectionForm
-						pageCount={notebook.pageCount}
-						{taken}
-						onadd={(r) => addSection(current, r)}
-					/>
+					<AddSectionForm pageCount={notebook.pageCount} {taken} onadd={(r) => addSection(r)} />
 				</div>
 				{#if failure}
 					<p role="alert" class="type-caption text-cover-foreground">{failure}</p>
@@ -281,11 +297,7 @@
 						{name} · {free} Free {free === 1 ? 'Page' : 'Pages'} left
 					</Sheet.Description>
 				</Sheet.Header>
-				<AddSectionForm
-					pageCount={notebook.pageCount}
-					{taken}
-					onadd={(r) => addSection(current, r)}
-				/>
+				<AddSectionForm pageCount={notebook.pageCount} {taken} onadd={(r) => addSection(r)} />
 			</Sheet.Content>
 		</Sheet.Root>
 	{/if}
@@ -322,7 +334,7 @@
 						<Button variant="outline" {...props}>Keep editing</Button>
 					{/snippet}
 				</Dialog.Close>
-				<Button disabled={confirming} onclick={() => confirmSetup(current)}>Confirm Setup</Button>
+				<Button disabled={confirming} onclick={() => confirmSetup()}>Confirm Setup</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
