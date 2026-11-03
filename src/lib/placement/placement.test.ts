@@ -205,6 +205,14 @@ describe('addSection', () => {
 		});
 	});
 
+	it('says no Free Pages are left when the Notebook is full', () => {
+		const full = setupNotebook(4, [{ name: 'A', pages: 4 }]);
+		const { outcome } = addSection(full, { name: 'B', pages: 2 });
+		expect(outcome).toMatchObject({
+			pending: { reason: 'needs 2 pages in one aligned block, and no Free Pages are left' }
+		});
+	});
+
 	it('rejects invalid input and duplicate names', () => {
 		expect(() => addSection(spring(), { name: '', pages: 4 })).toThrow('A Section needs a name');
 		expect(() => addSection(spring(), { name: 'X', pages: 0 })).toThrow(
