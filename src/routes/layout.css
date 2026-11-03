@@ -286,7 +286,9 @@
 			var(--text-section-name--line-height) var(--font-hand);
 	}
 	.sn-secrow__mark {
+		display: inline-block;
 		margin-left: var(--space-2);
+		white-space: nowrap;
 		color: var(--slip-muted-foreground);
 		font: var(--text-pencil-note--font-weight) var(--text-pencil-note) /
 			var(--text-pencil-note--line-height) var(--font-hand);

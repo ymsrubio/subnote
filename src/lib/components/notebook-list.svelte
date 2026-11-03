@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import CoverHeader from '$lib/components/cover-header.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { notebookSummary, pageStrip, waitingSections } from '$lib/notebook-list';
-	import type { SavedNotebook } from '$lib/storage';
+	import NewNotebookSheet from '$lib/components/new-notebook-sheet.svelte';
+	import { newestConfirmed, notebookSummary, pageStrip, waitingSections } from '$lib/notebook-list';
+	import { nextSavedNotebook } from '$lib/setup/next-notebook';
+	import { newSavedNotebook, notebookStore, type SavedNotebook } from '$lib/storage';
 
 	interface Props {
 		/** Oldest first, as the store lists them. */
@@ -17,6 +20,21 @@
 	const pending = $derived(waiting?.sections ?? []);
 	const current = $derived(newestFirst.find((saved) => saved.setupConfirmed));
 	const tabs = $derived(current?.notebook.sections.map((s) => s.colour) ?? []);
+
+	let startOpen = $state(false);
+
+	/** Reads the Notebooks again, so a Notebook confirmed in another tab since this list loaded is the one carried over. */
+	async function startNext(name: string, pageCount: number) {
+		const id = crypto.randomUUID();
+		const previous = newestConfirmed(await notebookStore.list());
+		await notebookStore.save(
+			previous
+				? nextSavedNotebook(id, name, pageCount, previous)
+				: newSavedNotebook(id, name, pageCount)
+		);
+		startOpen = false;
+		await goto(resolve('/notebooks/[id]/setup', { id }));
+	}
 
 	const hrefFor = (saved: SavedNotebook) =>
 		saved.setupConfirmed
@@ -75,16 +93,11 @@
 						{/each}
 					</ul>
 				{/if}
-				<!-- #26 builds the screen this opens. Until then the one main button says so. -->
 				<Button
 					size="lg"
 					class="h-11 md:h-10 md:justify-self-start"
-					disabled
-					aria-describedby="start-next-reason">Start next Notebook</Button
+					onclick={() => (startOpen = true)}>Start next Notebook</Button
 				>
-				<p id="start-next-reason" class="type-caption text-muted-foreground">
-					Starting the next Notebook isn't available yet.
-				</p>
 			</section>
 
 			<section class="grid gap-2 md:order-1" aria-labelledby="notebooks-heading">
@@ -131,3 +144,11 @@
 		</div>
 	</CoverHeader>
 </div>
+
+<NewNotebookSheet
+	bind:open={startOpen}
+	onsubmit={startNext}
+	title="Start next Notebook"
+	description="Name your next paper notebook and count its pages. Setup opens with your last Notebook's Sections and any Pending Sections already in it."
+	namePlaceholder="Summer notebook"
+/>

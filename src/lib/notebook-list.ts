@@ -41,6 +41,11 @@ export interface WaitingSections {
 	sections: PendingSection[];
 }
 
+/** The newest confirmed Notebook, or undefined. `notebooks` are oldest first, as `NotebookStore.list()` returns them. */
+export function newestConfirmed(notebooks: SavedNotebook[]): SavedNotebook | undefined {
+	return notebooks.findLast((saved) => saved.setupConfirmed);
+}
+
 /**
  * The Pending Sections waiting for the next Notebook: those of the newest confirmed Notebook, or `null`
  * when no Notebook is confirmed. `notebooks` are oldest first, as `NotebookStore.list()` returns them, so
@@ -49,6 +54,6 @@ export interface WaitingSections {
  * changes nothing.
  */
 export function waitingSections(notebooks: SavedNotebook[]): WaitingSections | null {
-	const newest = notebooks.findLast((saved) => saved.setupConfirmed);
+	const newest = newestConfirmed(notebooks);
 	return newest ? { from: newest.name, sections: newest.notebook.pending } : null;
 }

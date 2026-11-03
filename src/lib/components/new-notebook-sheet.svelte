@@ -9,9 +9,20 @@
 		open: boolean;
 		/** Called with a valid name and page count. Throw to show the message in the form. */
 		onsubmit: (name: string, pageCount: number) => Promise<void>;
+		/** The sheet's title and the line under it. Defaults to the first Notebook's wording. */
+		title?: string;
+		description?: string;
+		/** An example name in the empty field. */
+		namePlaceholder?: string;
 	}
 
-	let { open = $bindable(), onsubmit }: Props = $props();
+	let {
+		open = $bindable(),
+		onsubmit,
+		title = 'New Notebook',
+		description = "Name your paper notebook and count its pages. Next, in Setup, you'll decide what every page is for.",
+		namePlaceholder = 'Spring notebook'
+	}: Props = $props();
 
 	let name = $state('');
 	let pages = $state('');
@@ -52,17 +63,14 @@
 	<Sheet.Content>
 		<form class="grid gap-4" novalidate onsubmit={submit}>
 			<Sheet.Header>
-				<Sheet.Title>New Notebook</Sheet.Title>
-				<Sheet.Description>
-					Name your paper notebook and count its pages. Next, in Setup, you'll decide what every
-					page is for.
-				</Sheet.Description>
+				<Sheet.Title>{title}</Sheet.Title>
+				<Sheet.Description>{description}</Sheet.Description>
 			</Sheet.Header>
 			<div class="grid gap-2">
 				<Label for="notebook-name">Notebook name</Label>
 				<Input
 					id="notebook-name"
-					placeholder="Spring notebook"
+					placeholder={namePlaceholder}
 					autocomplete="off"
 					bind:value={name}
 					aria-invalid={errors.name ? true : undefined}
