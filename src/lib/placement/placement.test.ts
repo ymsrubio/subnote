@@ -6,16 +6,18 @@ import {
 	removeSection,
 	sectionSize,
 	setupNotebook,
-	type Notebook
+	type Notebook,
+	type PlacedSection
 } from './index';
 
-/** Spring notebook: 120 pages. 64 + 32 + 16 fill pages 1–112; the last 16 can't fit in 8 Free Pages. */
+/** The design canvas's Spring notebook: 120 pages, Reading log doesn't fit, pages 117–120 stay free. */
 const spring = () =>
 	setupNotebook(120, [
-		{ name: 'Idea capture', pages: 10 },
-		{ name: 'Reading log', pages: 12 },
+		{ name: 'Journal', pages: 64 },
 		{ name: 'Habit tracker', pages: 20 },
-		{ name: 'Journal', pages: 40 }
+		{ name: 'Idea capture', pages: 10 },
+		{ name: 'Calendar', pages: 4 },
+		{ name: 'Reading log', pages: 12 }
 	]);
 
 const ranges = (notebook: Notebook) =>
@@ -49,11 +51,13 @@ describe('setupNotebook', () => {
 		expect(ranges(notebook)).toEqual([
 			['Journal', 1, 64, 64],
 			['Habit tracker', 65, 96, 32],
-			['Idea capture', 97, 112, 16]
+			['Idea capture', 97, 112, 16],
+			['Calendar', 113, 116, 4]
 		]);
-		expect(notebook.sections.map((s) => s.titlePage)).toEqual([1, 65, 97]);
-		expect(notebook.sections.map((s) => s.requested)).toEqual([40, 20, 10]);
-		expect(freePages(notebook)).toBe(8);
+		expect(notebook.sections.map((s) => s.titlePage)).toEqual([1, 65, 97, 113]);
+		expect(notebook.sections.map((s) => s.requested)).toEqual([64, 20, 10, 4]);
+		expect(notebook.sections.map((s) => s.colour)).toEqual(['sage', 'clay', 'ochre', 'slate']);
+		expect(freePages(notebook)).toBe(4);
 	});
 
 	it('makes Reading log a Pending Section with the reason', () => {
@@ -62,7 +66,8 @@ describe('setupNotebook', () => {
 				name: 'Reading log',
 				requested: 12,
 				size: 16,
-				reason: 'needs 16 pages in one aligned block, and only 8 Free Pages are left'
+				reason: 'needs 16 pages in one aligned block, and only 4 Free Pages are left',
+				colour: 'plum'
 			}
 		]);
 	});
@@ -107,7 +112,8 @@ describe('setupNotebook', () => {
 				name: 'D',
 				requested: 8,
 				size: 8,
-				reason: 'needs 8 pages in one aligned block, and the 8 Free Pages left are split up'
+				reason: 'needs 8 pages in one aligned block, and the 8 Free Pages left are split up',
+				colour: 'ochre'
 			}
 		});
 	});
@@ -161,31 +167,34 @@ describe('addSection', () => {
 
 	it('never moves existing Sections', () => {
 		const before = spring();
-		const { notebook } = addSection(before, { name: 'Calendar', pages: 8 });
-		expect(ranges(notebook).slice(0, 3)).toEqual(ranges(before));
-		expect(ranges(notebook)[3]).toEqual(['Calendar', 113, 120, 8]);
+		const { notebook, outcome } = addSection(before, { name: 'Travel', pages: 3 });
+		expect(ranges(notebook).slice(0, 4)).toEqual(ranges(before));
+		expect(ranges(notebook)[4]).toEqual(['Travel', 117, 120, 4]);
+		expect(outcome).toMatchObject({ section: { colour: 'teal' } });
+		expect(freePages(notebook)).toBe(0);
 	});
 
 	it('does not change the Notebook it was given', () => {
 		const before = spring();
 		const snapshot = structuredClone(before);
-		addSection(before, { name: 'Calendar', pages: 8 });
+		addSection(before, { name: 'Travel', pages: 3 });
 		expect(before).toEqual(snapshot);
 	});
 
 	it('names the block needed and the Free Pages left when nothing fits', () => {
-		const { notebook, outcome } = addSection(spring(), { name: 'Recipes', pages: 9 });
+		const { notebook, outcome } = addSection(spring(), { name: 'Recipes', pages: 6 });
 		expect(outcome).toEqual({
 			kind: 'pending',
 			pending: {
 				name: 'Recipes',
-				requested: 9,
-				size: 16,
-				reason: 'needs 16 pages in one aligned block, and only 8 Free Pages are left'
+				requested: 6,
+				size: 8,
+				reason: 'needs 8 pages in one aligned block, and only 4 Free Pages are left',
+				colour: 'teal'
 			}
 		});
 		expect(notebook.pending.map((p) => p.name)).toEqual(['Reading log', 'Recipes']);
-		expect(notebook.sections).toHaveLength(3);
+		expect(notebook.sections).toHaveLength(4);
 	});
 
 	it('uses the singular for one Free Page', () => {
@@ -216,9 +225,10 @@ describe('removeSection', () => {
 		const after = removeSection(before, 'Habit tracker');
 		expect(ranges(after)).toEqual([
 			['Journal', 1, 64, 64],
-			['Idea capture', 97, 112, 16]
+			['Idea capture', 97, 112, 16],
+			['Calendar', 113, 116, 4]
 		]);
-		expect(freePages(after)).toBe(40);
+		expect(freePages(after)).toBe(36);
 	});
 
 	it('lets a later Section claim the freed pages', () => {
@@ -241,7 +251,8 @@ describe('removeSection', () => {
 
 describe('colours', () => {
 	it('assigns the palette in placement order', () => {
-		expect(spring().sections.map((s) => s.colour)).toEqual(['sage', 'clay', 'ochre']);
+		expect(spring().sections.map((s) => s.colour)).toEqual(['sage', 'clay', 'ochre', 'slate']);
+		expect(spring().pending[0].colour).toBe('plum');
 	});
 
 	it('skips a colour a page neighbour already has', () => {
@@ -295,6 +306,47 @@ describe('colours', () => {
 	});
 });
 
+describe('removing a Section between same-coloured neighbours', () => {
+	const section = (
+		name: string,
+		index: number,
+		colour: PlacedSection['colour']
+	): PlacedSection => ({
+		name,
+		requested: 4,
+		size: 4,
+		first: index * 4 + 1,
+		last: index * 4 + 4,
+		titlePage: index * 4 + 1,
+		colour
+	});
+
+	it('recolours the later-placed neighbour and leaves the rest alone', () => {
+		const notebook: Notebook = {
+			pageCount: 28,
+			pending: [],
+			sections: [
+				section('A', 0, 'sage'),
+				section('B', 1, 'clay'),
+				section('C', 2, 'sage'),
+				section('D', 3, 'ochre'),
+				section('E', 4, 'slate'),
+				section('F', 5, 'plum'),
+				section('G', 6, 'teal')
+			]
+		};
+		const after = removeSection(notebook, 'B');
+		expect(after.sections.map((s) => [s.name, s.colour])).toEqual([
+			['A', 'sage'],
+			['C', 'clay'],
+			['D', 'ochre'],
+			['E', 'slate'],
+			['F', 'plum'],
+			['G', 'teal']
+		]);
+	});
+});
+
 describe('previewAddSection', () => {
 	it('returns the range and Title Page when it fits, matching a real add', () => {
 		const notebook = removeSection(spring(), 'Idea capture');
@@ -308,7 +360,7 @@ describe('previewAddSection', () => {
 				first: 97,
 				last: 112,
 				titlePage: 97,
-				colour: 'ochre'
+				colour: 'plum'
 			}
 		});
 		expect(addSection(notebook, { name: 'Recipes', pages: 9 }).outcome).toEqual(preview);
@@ -323,7 +375,8 @@ describe('previewAddSection', () => {
 				name: 'Recipes',
 				requested: 9,
 				size: 16,
-				reason: 'needs 16 pages in one aligned block, and only 8 Free Pages are left'
+				colour: 'teal',
+				reason: 'needs 16 pages in one aligned block, and only 4 Free Pages are left'
 			}
 		});
 		expect(addSection(notebook, { name: 'Recipes', pages: 9 }).outcome).toEqual(preview);
@@ -332,7 +385,7 @@ describe('previewAddSection', () => {
 	it('changes nothing', () => {
 		const notebook = spring();
 		const snapshot = structuredClone(notebook);
-		previewAddSection(notebook, { name: 'Calendar', pages: 8 });
+		previewAddSection(notebook, { name: 'Travel', pages: 3 });
 		expect(notebook).toEqual(snapshot);
 	});
 

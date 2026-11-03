@@ -27,6 +27,8 @@ export interface PendingSection {
 	requested: number;
 	size: number;
 	reason: string;
+	/** The palette slot it holds, so the next Section's colour follows on from it. */
+	colour: SectionColour;
 }
 
 /** `sections` are in placement order, not page order. Treat values as immutable. */
@@ -103,33 +105,44 @@ function pickColour(position: number, avoid: SectionColour[]): SectionColour {
 	throw new Error('Two neighbours cannot use up six colours');
 }
 
-function tryPlace(notebook: Notebook, request: SectionRequest): PlacementOutcome {
+/** Places `request` in the first aligned free block, as the `slot`-th Section to take a palette colour. */
+function placeInBlock(
+	notebook: Notebook,
+	request: SectionRequest,
+	slot: number
+): PlacedSection | null {
 	const size = sectionSize(request.pages);
 	const first = findBlock(notebook, size);
-	if (first === null) {
-		const free = freePages(notebook);
-		return {
-			kind: 'pending',
-			pending: {
-				name: request.name,
-				requested: request.pages,
-				size,
-				reason: reasonFor(size, free, free >= size)
-			}
-		};
-	}
+	if (first === null) return null;
 	return {
-		kind: 'placed',
-		section: {
-			name: request.name,
-			requested: request.pages,
-			size,
-			first,
-			last: first + size - 1,
-			titlePage: first,
-			colour: pickColour(notebook.sections.length, neighbourColours(notebook.sections, first))
-		}
+		name: request.name,
+		requested: request.pages,
+		size,
+		first,
+		last: first + size - 1,
+		titlePage: first,
+		colour: pickColour(slot, neighbourColours(notebook.sections, first))
 	};
+}
+
+/** A Section that didn't fit, explained against the Notebook as it finally stands, taking palette slot `slot`. */
+function pendingFor(notebook: Notebook, request: SectionRequest, slot: number): PendingSection {
+	const size = sectionSize(request.pages);
+	const free = freePages(notebook);
+	return {
+		name: request.name,
+		requested: request.pages,
+		size,
+		reason: reasonFor(size, free, free >= size),
+		colour: pickColour(slot, [])
+	};
+}
+
+function tryPlace(notebook: Notebook, request: SectionRequest): PlacementOutcome {
+	const slot = notebook.sections.length + notebook.pending.length;
+	const section = placeInBlock(notebook, request, slot);
+	if (section) return { kind: 'placed', section };
+	return { kind: 'pending', pending: pendingFor(notebook, request, slot) };
 }
 
 function withOutcome(notebook: Notebook, outcome: PlacementOutcome): Notebook {
@@ -166,13 +179,17 @@ export function setupNotebook(pageCount: number, requests: SectionRequest[]): No
 		.map((request, index) => ({ request, index, size: sectionSize(request.pages) }))
 		.sort((a, b) => b.size - a.size || a.index - b.index);
 	let notebook: Notebook = { pageCount, sections: [], pending: [] };
-	for (const { request } of largestFirst)
-		notebook = withOutcome(notebook, tryPlace(notebook, request));
-	return { ...notebook, pending: notebook.pending.slice().sort(inInputOrder(valid)) };
+	const unplaced: { request: SectionRequest; index: number }[] = [];
+	for (const { request, index } of largestFirst) {
+		const section = placeInBlock(notebook, request, notebook.sections.length);
+		if (section) notebook = { ...notebook, sections: [...notebook.sections, section] };
+		else unplaced.push({ request, index });
+	}
+	const pending = unplaced
+		.sort((a, b) => a.index - b.index)
+		.map(({ request }, i) => pendingFor(notebook, request, notebook.sections.length + i));
+	return { ...notebook, pending };
 }
-
-const inInputOrder = (requests: SectionRequest[]) => (a: PendingSection, b: PendingSection) =>
-	requests.findIndex((r) => r.name === a.name) - requests.findIndex((r) => r.name === b.name);
 
 /**
  * What would happen if `request` were added, without changing the Notebook: the placed Section
@@ -202,15 +219,14 @@ export function removeSection(notebook: Notebook, name: string): Notebook {
 		throw new RangeError(`There is no Section called ${name}`);
 	}
 	let sections = notebook.sections.filter((s) => !sameName(s.name, name));
-	const sorted = byPage(sections);
-	for (let i = 1; i < sorted.length; i++) {
+	for (let i = 1; i < sections.length; i++) {
+		const sorted = byPage(sections);
 		const [left, right] = [sorted[i - 1], sorted[i]];
 		if (left.colour !== right.colour) continue;
-		const recolour = sections.indexOf(left) > sections.indexOf(right) ? left : right;
-		const others = sections.filter((s) => s !== recolour);
-		const colour = pickColour(sections.indexOf(recolour), neighbourColours(others, recolour.first));
-		sections = sections.map((s) => (s === recolour ? { ...s, colour } : s));
-		sorted[sorted.indexOf(recolour)] = { ...recolour, colour };
+		const later = sections.indexOf(left) > sections.indexOf(right) ? left : right;
+		const others = sections.filter((s) => s !== later);
+		const colour = pickColour(sections.indexOf(later), neighbourColours(others, later.first));
+		sections = sections.map((s) => (s === later ? { ...s, colour } : s));
 	}
 	return { ...notebook, sections };
 }
